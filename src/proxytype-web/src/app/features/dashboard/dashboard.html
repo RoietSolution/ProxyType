@@ -1,0 +1,53 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
+    <nav aria-label="Main navigation"><p>Workspace</p>
+      <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span>Overview</button>
+      <button [class.active]="view()==='hierarchy'" (click)="selectView('hierarchy')"><span>⌘</span>Organization</button>
+      <button [class.active]="view()==='services'" (click)="selectView('services')"><span>◇</span>Services</button>
+      <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span>Security</button>
+      <a class="nav-link" routerLink="/services/fino-dmt"><span class="nav-icon"><img src="/icon-pack/Money-Transfer.svg" alt=""></span>Fino DMT</a><a class="nav-link" routerLink="/services/aeps"><span class="nav-icon"><img src="/icon-pack/AePS-Payment.svg" alt=""></span>AEPS</a><a class="nav-link" routerLink="/services/fund-request"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Fund Request</a>
+      <a class="nav-link" routerLink="/services/recharge"><span class="nav-icon"><img src="/icon-pack/Mobile-Recharge.svg" alt=""></span>Recharge</a>
+      <a class="nav-link" routerLink="/services/wallet-to-wallet"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Wallet to Wallet</a>
+      <p class="nav-group-label">User:</p>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSP'}"><span>♙</span>CSP List</a>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSF'}"><span>♙</span>CSF List</a>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CMF'}"><span>♙</span>CMF List</a>
+      <a class="nav-link" routerLink="/transactions"><span>↗</span>Transactions</a>
+    </nav>
+    <div class="sidebar-foot"><b>✓</b><div><strong>Protected session</strong><small>Role and scope enforced</small></div></div>
+  </aside>
+  <main>
+    <header><div><p>Platform / {{ view() }}</p><h1>{{ view()==='overview' ? 'Operations overview' : view()==='hierarchy' ? 'Organization hierarchy' : view()==='services' ? 'Service permissions' : 'Security activity' }}</h1></div>
+      <div class="profile"><span>{{ (user()?.displayName || user()?.username || 'U').charAt(0).toUpperCase() }}</span><div><strong>{{ user()?.displayName || user()?.username }}</strong><small>{{ user()?.roles?.[0] || 'Member' }}</small></div><button (click)="logout()">Sign out</button></div>
+    </header>
+    @if(error()){<div class="alert" role="alert">{{error()}}<button (click)="error.set('')">Dismiss</button></div>}
+    @if(loading()){
+      <div class="loading"><span></span><p>Preparing your workspace…</p></div>
+    } @else if(view()==='overview'){
+      <section class="welcome"><div><p>{{dashboard()?.organization?.unitType || 'Platform'}} workspace</p><h2>Good to see you, {{user()?.displayName || user()?.username}}.</h2><small>Your network and service access are summarized below.</small></div><em><i></i>Systems operational</em></section>
+      <section class="metrics">
+        <article><b class="green">⌘</b><div><small>Accessible units</small><strong>{{dashboard()?.hierarchy?.total || 0}}</strong><em>{{dashboard()?.hierarchy?.active || 0}} active</em></div></article>
+        <article><b class="teal">◇</b><div><small>Available services</small><strong>{{dashboard()?.services?.available || 0}}</strong><em>{{dashboard()?.services?.restricted || 0}} restricted</em></div></article>
+        <article><b class="gold">C</b><div><small>CMF / CSF network</small><strong>{{dashboard()?.hierarchy?.cmf || 0}} / {{dashboard()?.hierarchy?.csf || 0}}</strong><em>Managed hierarchy</em></div></article>
+        <article><b class="blue">P</b><div><small>CSP endpoints</small><strong>{{dashboard()?.hierarchy?.csp || 0}}</strong><em>Within your scope</em></div></article>
+      </section>
+      <section class="overview-grid">
+        <article class="panel services-panel"><div class="panel-title"><div><h3>Available services</h3><p>Effective for your primary organization</p></div><button (click)="selectView('services')">Manage access</button></div>
+          <div class="service-list">@for(service of dashboard()?.services?.items || [];track service.serviceId){<a class="service-entry" [routerLink]="serviceRoute(service.code)" [class.catalog-only]="!serviceRoute(service.code)" [class.featured]="isFeaturedService(service)" [attr.title]="serviceRoute(service.code) ? 'Open ' + service.name : 'Workflow not implemented yet'"><span class="service-icon" [class]="'service-icon ' + serviceTone(service.code)"><img [src]="serviceIconPath(service.code)" [alt]="service.name"></span><div><strong>{{service.name}}</strong><small>{{service.category}}</small></div><i>{{serviceRoute(service.code) ? 'Open' : 'Catalog only'}}</i></a>}@empty{<p class="empty">No services are available.</p>}</div>
+        </article>
+        <article class="panel"><div class="panel-title"><div><h3>Hierarchy health</h3><p>Units within your permitted branch</p></div></div><div class="hierarchy-flow"><span>CMF<b>{{dashboard()?.hierarchy?.cmf || 0}}</b></span><i></i><span>CSF<b>{{dashboard()?.hierarchy?.csf || 0}}</b></span><i></i><span>CSP<b>{{dashboard()?.hierarchy?.csp || 0}}</b></span></div><div class="scope-note"><b>✓</b><p><strong>Scope isolation enabled</strong><small>Your account can only read and manage its assigned branch.</small></p></div></article>
+      </section>
+    } @else if(view()==='hierarchy'){
+      <section class="content-panel"><div class="panel-title"><div><h3>Accessible organization units</h3><p>CRM-preferred CMF → CSF → CSP structure</p></div><span class="count">{{organizations().length}} units</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Code</th><th>Organization</th><th>Type</th><th>Parent</th><th>Status</th></tr></thead><tbody>@for(unit of organizations();track unit.organizationUnitId){<tr><td><code>{{unit.code}}</code></td><td><strong>{{unit.name}}</strong></td><td><span class="tag">{{unit.unitType}}</span></td><td>{{unit.parentOrganizationUnitId ? 'Assigned' : 'Root'}}</td><td><span class="tag" [class.pending]="unit.status!=='ACTIVE'">{{unit.status}}</span></td></tr>}</tbody></table></div>
+      </section>
+    } @else if(view()==='services'){
+      <section class="content-panel"><div class="permission-head"><div><h3>Effective service access</h3><p>Parent denials always take precedence over child grants.</p></div><label>Organization<select [value]="selectedOrganizationId()" (change)="selectOrganization($event)">@for(unit of organizations();track unit.organizationUnitId){<option [value]="unit.organizationUnitId">{{unit.code}} · {{unit.name}}</option>}</select></label></div>
+        <div class="permission-grid">@for(service of effectiveServices();track service.serviceId){<article><span>{{service.name.charAt(0)}}</span><div><small>{{service.category}}</small><strong>{{service.name}}</strong><em>{{service.decisionReason}}</em></div><section><button [class.selected]="service.isAllowed" [disabled]="savingServiceId()===service.serviceId" (click)="changePermission(service,'ALLOW')">Allow</button><button class="deny" [class.selected]="!service.isAllowed" [disabled]="savingServiceId()===service.serviceId" (click)="changePermission(service,'DENY')">Deny</button></section></article>}@empty{<p class="empty">No effective service records are available.</p>}</div>
+      </section>
+    } @else {
+      <section class="content-panel"><div class="panel-title"><div><h3>Recent authentication activity</h3><p>Latest events for your user account</p></div></div><div class="activity-list">@for(event of dashboard()?.recentSecurityActivity || [];track event.occurredAtUtc){<div><span [class.failed]="!event.succeeded">{{event.succeeded ? '✓' : '!'}}</span><div><strong>{{event.succeeded ? 'Successful sign-in' : 'Sign-in rejected'}}</strong><small>{{event.ipAddress || 'Address unavailable'}}</small></div><time>{{event.occurredAtUtc | date:'medium'}}</time></div>}@empty{<p class="empty">No recent authentication activity.</p>}</div></section>
+    }
+  </main>
+</div>

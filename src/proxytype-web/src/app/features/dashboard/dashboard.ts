@@ -1,0 +1,90 @@
+import { DatePipe } from '@angular/common';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth.service';
+import { DashboardData, EffectiveService, OrganizationUnit, ServiceDefinition } from '../../core/models';
+import { PortalApiService } from '../../core/portal-api.service';
+
+type View = 'overview'|'hierarchy'|'services'|'security';
+
+@Component({ selector: 'app-dashboard', imports: [DatePipe, RouterLink], templateUrl: './dashboard.html', styleUrl: './dashboard.scss' })
+export class Dashboard implements OnInit {
+  private readonly auth = inject(AuthService);
+  private readonly api = inject(PortalApiService);
+  readonly user = this.auth.user;
+  readonly view = signal<View>('overview');
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly dashboard = signal<DashboardData|null>(null);
+  readonly organizations = signal<OrganizationUnit[]>([]);
+  readonly serviceDefinitions = signal<ServiceDefinition[]>([]);
+  readonly effectiveServices = signal<EffectiveService[]>([]);
+  readonly selectedOrganizationId = signal('');
+  readonly savingServiceId = signal('');
+  readonly currentOrganization = computed(() => this.organizations().find(x => x.organizationUnitId === this.selectedOrganizationId()) ?? null);
+
+  ngOnInit(): void {
+    forkJoin({ dashboard: this.api.dashboard(), organizations: this.api.organizationTree(), services: this.api.services() }).subscribe({
+      next: ({ dashboard, organizations, services }) => {
+        this.dashboard.set(dashboard); this.organizations.set(organizations); this.serviceDefinitions.set(services);
+        const selected = dashboard.organization?.organizationUnitId ?? organizations[0]?.organizationUnitId ?? '';
+        this.selectedOrganizationId.set(selected); if (selected) this.loadPermissions(selected); this.loading.set(false);
+      },
+      error: () => { this.error.set('The dashboard could not be loaded. Please try again.'); this.loading.set(false); },
+    });
+  }
+  selectView(view: View): void { this.view.set(view); }
+  selectOrganization(event: Event): void { const id = (event.target as HTMLSelectElement).value; this.selectedOrganizationId.set(id); this.loadPermissions(id); }
+  changePermission(service: EffectiveService, effect: 'ALLOW'|'DENY'): void {
+    const id = this.selectedOrganizationId(); if (!id) return; this.savingServiceId.set(service.serviceId);
+    this.api.setPermission(id, service.serviceId, effect).subscribe({
+      next: () => { this.loadPermissions(id); this.savingServiceId.set(''); },
+      error: () => { this.error.set('Permission update failed. Verify your hierarchy role and the parent permission.'); this.savingServiceId.set(''); },
+    });
+  }
+  logout(): void { this.auth.logout(); location.assign('/login'); }
+  serviceRoute(code: string): string[] | null {
+    if (code === 'fino_dmt') return ['/services/fino-dmt'];
+    if (code === 'upi_transfer') return ['/services/upi-transfer'];
+    if (code === 'aeps') return ['/services/aeps'];
+    if (code.startsWith('recharge_')) return ['/services/recharge'];
+    if (code === 'wallet_transfer') return ['/services/wallet-to-wallet'];
+    if (code === 'fund_request') return ['/services/fund-request'];
+    return null;
+  }
+  serviceIcon(code: string): string {
+    if (code.startsWith('aeps')) return '◉';
+    if (code.startsWith('dmt')) return '➤';
+    if (code.startsWith('payout')) return '→';
+    if (code.startsWith('recharge')) return '▯';
+    if (code.startsWith('bbps')) return '▤';
+    if (code.includes('pan')) return '▧';
+    if (code.includes('account')) return '▥';
+    if (code.includes('credit')) return '▣';
+    if (code.includes('fund')) return '⌘';
+    return '◇';
+  }
+  serviceIconPath(code: string): string {
+    if (code.startsWith('aeps')) return '/icon-pack/AePS-Payment.svg';
+    if (code.startsWith('dmt') || code === 'fino_dmt') return '/icon-pack/Money-Transfer.svg';
+    if (code.startsWith('payout')) return '/icon-pack/Payout.svg';
+    if (code.startsWith('recharge')) return code.includes('dth') ? '/icon-pack/DTH_Recharge.svg' : '/icon-pack/Mobile-Recharge.svg';
+    if (code.startsWith('bbps') || code.includes('payment')) return '/icon-pack/Electricity-Bill.svg';
+    if (code.includes('pan')) return '/icon-pack/PAN-NSDL.svg';
+    if (code.includes('demat')) return '/icon-pack/Demat-Account.svg';
+    if (code.includes('account')) return code.includes('business') ? '/icon-pack/Business-Account.svg' : '/icon-pack/Saving-Account.svg';
+    if (code.includes('credit')) return '/icon-pack/Credit-Card.svg';
+    if (code.includes('fund') || code.includes('wallet') || code.includes('upi')) return '/icon-pack/Wallet-Transfer.svg';
+    if (code.includes('product')) return '/icon-pack/PRODUCTS.svg';
+    return '/icon-pack/Other-Service.svg';
+  }
+  serviceTone(code: string): string {
+    const tones = ['mint', 'blue', 'gold', 'pink', 'teal', 'violet'];
+    return tones[Math.abs([...code].reduce((total, char) => total + char.charCodeAt(0), 0)) % tones.length];
+  }
+  isFeaturedService(service: EffectiveService): boolean {
+    return /auth|aeps/i.test(`${service.code} ${service.name}`);
+  }
+  private loadPermissions(id: string): void { this.api.effectiveServices(id).subscribe({ next: services => this.effectiveServices.set(services), error: () => this.effectiveServices.set([]) }); }
+}

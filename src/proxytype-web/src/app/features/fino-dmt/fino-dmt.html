@@ -1,0 +1,18 @@
+<main class="service-page"><section class="service-card"><div class="page-head"><div><p class="eyebrow">Money transfer</p><h1>Fino DMT</h1><p class="intro">Transfer funds to a verified bank account using the approved service workflow.</p></div><div class="page-actions"><span class="mode-badge">MOCK / SANDBOX</span><button type="button" class="icon-button" aria-label="Close Fino DMT" title="Close" (click)="backToHome()">×</button></div></div>
+  <div class="notice"><strong>Development provider</strong><span>No live financial transaction is made. Provider mode must be explicitly enabled and configured before production use.</span></div>
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-grid">
+      <label>Account number<input formControlName="accountNumber" inputmode="numeric" autocomplete="off"><small>9–18 digits</small></label>
+      <label>IFSC code<input formControlName="ifscCode" autocapitalize="characters" autocomplete="off"><small>Example: ABCD0123456</small></label>
+      <label>Beneficiary name<input formControlName="beneficiaryName" autocomplete="off"></label>
+      <label>Mobile number<input formControlName="mobile" inputmode="numeric" autocomplete="off"><small>10 digits</small></label>
+      <label>Amount (INR)<input type="number" formControlName="amount" min="1000" max="10000" step="1"></label>
+      <label>Transfer mode<select formControlName="transferMode"><option value="IMPS">IMPS</option><option value="NEFT">NEFT</option><option value="RTGS">RTGS</option></select></label>
+    </div>
+    <label>Comments<textarea formControlName="comments" rows="3"></textarea></label>
+    @if(form.invalid && form.touched){<p class="field-error">Complete all fields using the required formats before submitting.</p>}
+    @if(error()){<div class="error" role="alert">{{error()}}</div>}
+    <button type="submit" [disabled]="loading()">{{loading() ? 'Processing…' : 'Submit transfer'}}</button>
+  </form>
+  @if(result(); as response){<section class="result" [class.failed]="response.status === 'FAILED'"><div class="result-head"><div><p class="eyebrow">Transaction result</p><h2>{{response.status}}</h2></div><button type="button" class="result-close" aria-label="Close transaction result" title="Close" (click)="closeResult()">×</button></div><dl><div><dt>Reference</dt><dd>{{response.transactionReference}}</dd></div><div><dt>Provider</dt><dd>{{response.providerMode}}</dd></div><div><dt>Amount</dt><dd>₹{{response.amount}}</dd></div>@if(response.providerReference){<div><dt>Provider reference</dt><dd>{{response.providerReference}}</dd></div>}@if(response.receiptNumber){<div><dt>Receipt</dt><dd>{{response.receiptNumber}}</dd></div>}</dl>@if(response.failureReason){<p class="error">{{response.failureReason}}</p>}<div class="result-actions"><button type="button" class="secondary-button" (click)="closeResult()">New transfer</button><button type="button" (click)="backToHome()">Back to home</button></div></section>}
+</section></main>

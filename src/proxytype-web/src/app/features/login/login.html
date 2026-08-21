@@ -1,0 +1,31 @@
+<main class="login-shell">
+  <section class="brand-panel" aria-label="ProxyType platform introduction">
+    <div class="brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
+    <div class="hero-copy">
+      <p class="eyebrow">Financial services infrastructure</p>
+      <h1>One secure workspace.<br>Every service in reach.</h1>
+      <p>Operate your CMF, CSF, and CSP network with clear controls, verified permissions, and one dependable ledger.</p>
+    </div>
+    <div class="trust-row"><div><strong>3-tier</strong><span>Hierarchy isolation</span></div><div><strong>24</strong><span>Service definitions</span></div><div><strong>24/7</strong><span>Operational visibility</span></div></div>
+  </section>
+  <section class="form-panel">
+    <div class="form-wrap">
+      <div class="mobile-brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
+      <p class="eyebrow">Administration portal</p><h2>Welcome back</h2><p class="intro">Use your organization credentials to continue.</p>
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <label for="username">Username or email</label>
+        <input id="username" type="text" formControlName="username" autocomplete="username" placeholder="Enter your username">
+        @if (form.controls.username.touched && form.controls.username.invalid) { <p class="field-error">Enter at least 3 characters.</p> }
+        <label for="password">Password</label>
+        <div class="password-field">
+          <input id="password" [type]="revealPassword() ? 'text' : 'password'" formControlName="password" autocomplete="current-password" placeholder="Enter your password">
+          <button type="button" class="reveal" (click)="revealPassword.set(!revealPassword())" [attr.aria-label]="revealPassword() ? 'Hide password' : 'Show password'">{{ revealPassword() ? 'Hide' : 'Show' }}</button>
+        </div>
+        @if (form.controls.password.touched && form.controls.password.invalid) { <p class="field-error">Password must contain at least 8 characters.</p> }
+        @if (error()) { <div class="error-banner" role="alert">{{ error() }}</div> }
+        <button class="submit" type="submit" [disabled]="loading()">{{ loading() ? 'Signing in…' : 'Sign in securely' }}</button>
+      </form>
+      <p class="support">Access is managed by your platform administrator.</p>
+    </div>
+  </section>
+</main>
