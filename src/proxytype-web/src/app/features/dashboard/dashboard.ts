@@ -81,7 +81,7 @@ export class Dashboard implements OnInit {
     return '◇';
   }
   serviceIconPath(code: string): string {
-    if (code.startsWith('aeps')) return '/icon-pack/AePS-Payment.svg';
+    if (code.startsWith('aeps')) return '/icon-pack/AePS-Payment.jpeg';
     if (code.startsWith('dmt') || code === 'fino_dmt') return '/icon-pack/Money-Transfer.svg';
     if (code.startsWith('payout')) return '/icon-pack/Payout.svg';
     if (code.startsWith('recharge')) return code.includes('dth') ? '/icon-pack/DTH_Recharge.svg' : '/icon-pack/Mobile-Recharge.svg';
