@@ -2,10 +2,10 @@
   <aside class="sidebar">
     <div class="brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
     <nav aria-label="Main navigation"><p>Workspace</p>
-      <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span>Overview</button>
+      <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span>Dashboard</button>
       <button [class.active]="view()==='hierarchy'" (click)="selectView('hierarchy')"><span>⌘</span>Organization</button>
       <button [class.active]="view()==='services'" (click)="selectView('services')"><span>◇</span>Services</button>
-      <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span>Security</button>
+      <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span>Login Activity</button>
       <a class="nav-link" routerLink="/services/fino-dmt"><span class="nav-icon"><img src="/icon-pack/Money-Transfer.svg" alt=""></span>Fino DMT</a><a class="nav-link" routerLink="/services/aeps"><span class="nav-icon"><img src="/icon-pack/AePS-Payment.svg" alt=""></span>AEPS</a><a class="nav-link" routerLink="/services/fund-request"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Fund Request</a>
       <a class="nav-link" routerLink="/services/recharge"><span class="nav-icon"><img src="/icon-pack/Mobile-Recharge.svg" alt=""></span>Recharge</a>
       <a class="nav-link" routerLink="/services/wallet-to-wallet"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Wallet to Wallet</a>
@@ -34,7 +34,8 @@
       </section>
       <section class="overview-grid">
         <article class="panel services-panel"><div class="panel-title"><div><h3>Available services</h3><p>Effective for your primary organization</p></div><button (click)="selectView('services')">Manage access</button></div>
-          <div class="service-list">@for(service of dashboard()?.services?.items || [];track service.serviceId){<a class="service-entry" [routerLink]="serviceRoute(service.code)" [class.catalog-only]="!serviceRoute(service.code)" [class.featured]="isFeaturedService(service)" [attr.title]="serviceRoute(service.code) ? 'Open ' + service.name : 'Workflow not implemented yet'"><span class="service-icon" [class]="'service-icon ' + serviceTone(service.code)"><img [src]="serviceIconPath(service.code)" [alt]="service.name"></span><div><strong>{{service.name}}</strong><small>{{service.category}}</small></div><i>{{serviceRoute(service.code) ? 'Open' : 'Catalog only'}}</i></a>}@empty{<p class="empty">No services are available.</p>}</div>
+          <div class="service-tabs" role="tablist" aria-label="Service categories">@for(tab of serviceTabs;track tab.key){<button type="button" class="service-tab" [class.active]="activeServiceTab()===tab.key" [attr.aria-selected]="activeServiceTab()===tab.key" (click)="selectServiceTab(tab.key)">{{tab.label}}</button>}</div>
+          <div class="service-list">@for(service of visibleDashboardServices();track service.serviceId){<a class="service-entry" [routerLink]="serviceRoute(service.code)" [class.catalog-only]="!serviceRoute(service.code)" [class.featured]="isFeaturedService(service)" [attr.title]="serviceRoute(service.code) ? 'Open ' + service.name : 'Workflow not implemented yet'"><span class="service-icon" [class]="'service-icon ' + serviceTone(service.code)"><img [src]="serviceIconPath(service.code)" [alt]="service.name"></span><div><strong>{{service.name}}</strong><small>{{service.category}}</small></div></a>}@empty{<p class="empty">No services are available in this category.</p>}</div>
         </article>
         <article class="panel"><div class="panel-title"><div><h3>Hierarchy health</h3><p>Units within your permitted branch</p></div></div><div class="hierarchy-flow"><span>CMF<b>{{dashboard()?.hierarchy?.cmf || 0}}</b></span><i></i><span>CSF<b>{{dashboard()?.hierarchy?.csf || 0}}</b></span><i></i><span>CSP<b>{{dashboard()?.hierarchy?.csp || 0}}</b></span></div><div class="scope-note"><b>✓</b><p><strong>Scope isolation enabled</strong><small>Your account can only read and manage its assigned branch.</small></p></div></article>
       </section>

@@ -7,6 +7,7 @@ import { DashboardData, EffectiveService, OrganizationUnit, ServiceDefinition } 
 import { PortalApiService } from '../../core/portal-api.service';
 
 type View = 'overview'|'hierarchy'|'services'|'security';
+type ServiceTab = 'aeps'|'money-transfer'|'recharges'|'upcoming';
 
 @Component({ selector: 'app-dashboard', imports: [DatePipe, RouterLink], templateUrl: './dashboard.html', styleUrl: './dashboard.scss' })
 export class Dashboard implements OnInit {
@@ -22,7 +23,20 @@ export class Dashboard implements OnInit {
   readonly effectiveServices = signal<EffectiveService[]>([]);
   readonly selectedOrganizationId = signal('');
   readonly savingServiceId = signal('');
+  readonly activeServiceTab = signal<ServiceTab>('aeps');
   readonly currentOrganization = computed(() => this.organizations().find(x => x.organizationUnitId === this.selectedOrganizationId()) ?? null);
+  readonly serviceTabs: ReadonlyArray<{ key: ServiceTab; label: string }> = [
+    { key: 'aeps', label: 'AEPS' },
+    { key: 'money-transfer', label: 'Money Transfer' },
+    { key: 'recharges', label: 'Recharges' },
+    { key: 'upcoming', label: 'Upcoming' },
+  ];
+  readonly groupedDashboardServices = computed(() => {
+    const groups: Record<ServiceTab, EffectiveService[]> = { aeps: [], 'money-transfer': [], recharges: [], upcoming: [] };
+    for (const service of this.dashboard()?.services?.items || []) groups[this.serviceTabFor(service)].push(service);
+    return groups;
+  });
+  readonly visibleDashboardServices = computed(() => this.groupedDashboardServices()[this.activeServiceTab()]);
 
   ngOnInit(): void {
     forkJoin({ dashboard: this.api.dashboard(), organizations: this.api.organizationTree(), services: this.api.services() }).subscribe({
@@ -35,6 +49,7 @@ export class Dashboard implements OnInit {
     });
   }
   selectView(view: View): void { this.view.set(view); }
+  selectServiceTab(tab: ServiceTab): void { this.activeServiceTab.set(tab); }
   selectOrganization(event: Event): void { const id = (event.target as HTMLSelectElement).value; this.selectedOrganizationId.set(id); this.loadPermissions(id); }
   changePermission(service: EffectiveService, effect: 'ALLOW'|'DENY'): void {
     const id = this.selectedOrganizationId(); if (!id) return; this.savingServiceId.set(service.serviceId);
@@ -85,6 +100,16 @@ export class Dashboard implements OnInit {
   }
   isFeaturedService(service: EffectiveService): boolean {
     return /auth|aeps/i.test(`${service.code} ${service.name}`);
+  }
+  serviceTabFor(service: EffectiveService): ServiceTab {
+    const text = `${service.code} ${service.name} ${service.category}`.toLowerCase();
+    if (text.includes('aeps') || text.includes('aadhaar')) return 'aeps';
+    if (text.includes('recharge') || text.includes('bill payment') || text.includes('bbps') || text.includes('credit card') || text.includes('dth')) return 'recharges';
+    if (
+      text.includes('dmt') || text.includes('transfer') || text.includes('payout') || text.includes('fund request') ||
+      text.includes('cash deposit') || text.includes('move to bank') || text.includes('wallet') || text.includes('upi')
+    ) return 'money-transfer';
+    return 'upcoming';
   }
   private loadPermissions(id: string): void { this.api.effectiveServices(id).subscribe({ next: services => this.effectiveServices.set(services), error: () => this.effectiveServices.set([]) }); }
 }
