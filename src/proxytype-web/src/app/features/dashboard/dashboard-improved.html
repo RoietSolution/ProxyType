@@ -1,0 +1,195 @@
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
+    <nav aria-label="Main navigation"><p>Workspace</p>
+      <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span>Dashboard</button>
+      <button [class.active]="view()==='hierarchy'" (click)="selectView('hierarchy')"><span>⌘</span>Organization</button>
+      <button [class.active]="view()==='services'" (click)="selectView('services')"><span>◇</span>Services</button>
+      <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span>Login Activity</button>
+      <a class="nav-link" routerLink="/services/fino-dmt">
+        <span class="nav-icon"><img src="/icon-pack/Money-Transfer.svg" alt=""></span>Fino DMT</a><a class="nav-link" routerLink="/services/aeps">
+        <span class="nav-icon"><img src="/icon-pack/AePS-Payment.jpeg" alt=""></span>AEPS</a><a class="nav-link" routerLink="/services/fund-request">
+          <span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Fund Request</a>
+      <a class="nav-link" routerLink="/services/recharge"><span class="nav-icon"><img src="/icon-pack/Mobile-Recharge.svg" alt=""></span>Recharge</a>
+      <a class="nav-link" routerLink="/services/wallet-to-wallet"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Wallet to Wallet</a>
+      <p class="nav-group-label">User:</p>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSP'}"><span>♙</span>CSP List</a>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSF'}"><span>♙</span>CSF List</a>
+      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CMF'}"><span>♙</span>CMF List</a>
+      <a class="nav-link" routerLink="/transactions"><span>↗</span>Transactions</a>
+    </nav>
+    <div class="sidebar-foot"><b>✓</b><div><strong>Protected session</strong><small>Role and scope enforced</small></div></div>
+  </aside>
+  <main>
+    <header><div><p>Platform / {{ view() }}</p><h1>{{ view()==='overview' ? 'Operations overview' : view()==='hierarchy' ? 'Organization hierarchy' : view()==='services' ? 'Service permissions' : 'Security Activity'}}</h1></div>
+      <div class="profile"><span>{{ (user()?.displayName || user()?.username || 'U').charAt(0).toUpperCase() }}</span><div><strong>{{ user()?.displayName || user()?.username }}</strong><small>{{ user()?.role || 'User' }}</small></div></div>
+    </header>
+    @if(error()){<div class="alert" role="alert">{{error()}}<button (click)="error.set('')">Dismiss</button></div>}
+    @if(loading()){
+      <div class="loading"><span></span><p>Preparing your workspace…</p></div>
+    } @else if(view()==='overview'){
+      <section class="welcome"><div><p>{{dashboard()?.organization?.unitType || 'Platform'}} workspace</p><h2>Good to see you, {{user()?.displayName || user()?.username}}.</h2><small>Your network and services are ready</small></div></section>
+      <section class="metrics">
+        <article><b class="green">⌘</b><div><small>Accessible units</small><strong>{{dashboard()?.hierarchy?.total || 0}}</strong><em>{{dashboard()?.hierarchy?.active || 0}} active</em></div></article>
+        <article><b class="teal">◇</b><div><small>Available services</small><strong>{{dashboard()?.services?.available || 0}}</strong><em>{{dashboard()?.services?.restricted || 0}} restricted</em></div></article>
+        <article><b class="gold">C</b><div><small>CMF / CSF network</small><strong>{{dashboard()?.hierarchy?.cmf || 0}} / {{dashboard()?.hierarchy?.csf || 0}}</strong><em>Managed hierarchy</em></div></article>
+        <article><b class="blue">P</b><div><small>CSP endpoints</small><strong>{{dashboard()?.hierarchy?.csp || 0}}</strong><em>Within your scope</em></div></article>
+      </section>
+      <section class="overview-grid">
+        <article class="panel services-panel">
+          <div class="panel-title">
+            <div>
+              <h3>Available services</h3>
+              <p>Effective for your primary organization</p>
+            </div>
+            <button class="btn-secondary" (click)="selectView('services')">Manage all</button>
+          </div>
+          <div class="service-tabs" role="tablist" aria-label="Service categories">
+            @for(tab of serviceTabs;track tab.key){
+              <button type="button" class="service-tab" [class.active]="activeServiceTab()===tab.key" (click)="selectServiceTab(tab.key)" [attr.aria-selected]="activeServiceTab()===tab.key">
+                {{tab.label}}
+              </button>
+            }
+          </div>
+          <div class="service-list-showcase">
+            @for(service of visibleDashboardServices();track service.serviceId){
+              <a class="service-card" [routerLink]="serviceRoute(service.code)" [class.disabled]="!service.isEnabled" [attr.aria-disabled]="!service.isEnabled">
+                <div class="service-card-icon" [ngClass]="'icon-' + service.category">
+                  <img [src]="'/icon-pack/' + service.iconPath" [alt]="service.name" loading="lazy">
+                </div>
+                <div class="service-card-content">
+                  <h4>{{service.name}}</h4>
+                  <p>{{service.category}}</p>
+                </div>
+                <div class="service-card-status">
+                  @if(service.isEnabled){
+                    <span class="badge badge-success">Active</span>
+                  } @else {
+                    <span class="badge badge-disabled">Restricted</span>
+                  }
+                </div>
+              </a>
+            }
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-title"><div><h3>Hierarchy health</h3><p>Units within your permitted branch</p></div></div>
+          <div class="hierarchy-flow">
+            <span class="hierarchy-item">CMF<b>{{dashboard()?.hierarchy?.cmf || 0}}</b></span>
+            <span class="hierarchy-arrow">→</span>
+            <span class="hierarchy-item">CSF<b>{{dashboard()?.hierarchy?.csf || 0}}</b></span>
+            <span class="hierarchy-arrow">→</span>
+            <span class="hierarchy-item">CSP<b>{{dashboard()?.hierarchy?.csp || 0}}</b></span>
+          </div>
+        </article>
+      </section>
+    } @else if(view()==='hierarchy'){
+      <section class="content-panel">
+        <div class="panel-title">
+          <div>
+            <h3>Accessible organization units</h3>
+            <p>CRM-preferred CMF → CSF → CSP structure</p>
+          </div>
+          <span class="count">{{organizations().length}}</span>
+        </div>
+        <div class="table-wrap">
+          <table role="grid">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Organization</th>
+                <th scope="col">Type</th>
+                <th scope="col">Parent</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(unit of organizations();track unit.organizationUnitId){
+                <tr>
+                  <td>{{unit.code}}</td>
+                  <td>{{unit.name}}</td>
+                  <td><span class="type-badge" [ngClass]="'type-' + unit.type">{{unit.type}}</span></td>
+                  <td>{{unit.parentName || '—'}}</td>
+                  <td><span class="status-badge" [ngClass]="'status-' + unit.status">{{unit.status}}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @else if(view()==='services'){
+      <section class="content-panel">
+        <div class="permission-head">
+          <div>
+            <h3>Effective service access</h3>
+            <p>Parent denials always take precedence over child grants</p>
+          </div>
+          <div class="filters-group">
+            <label for="org-select" class="filter-label">Filter by organization</label>
+            <select id="org-select" [(ngModel)]="selectedOrganization" class="filter-select">
+              <option value="">All organizations</option>
+              @for(org of organizations();track org.organizationUnitId){
+                <option [value]="org.organizationUnitId">{{org.name}}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="services-container">
+          @if((effectiveServices() | async) as services){
+            @if(services.length > 0){
+              <div class="services-grid">
+                @for(service of services;track service.serviceId){
+                  <article class="service-card-detailed" [class.restricted]="!service.isEnabled">
+                    <div class="card-header">
+                      <div class="service-icon-large" [ngClass]="'icon-' + service.category">
+                        <span>{{service.name.charAt(0).toUpperCase()}}</span>
+                      </div>
+                      <div class="card-meta">
+                        <span class="service-category">{{service.category}}</span>
+                        <h3>{{service.name}}</h3>
+                      </div>
+                    </div>
+                    <div class="card-content">
+                      <p>{{service.description}}</p>
+                    </div>
+                    <div class="card-footer">
+                      <span class="permission-status" [ngClass]="service.isEnabled ? 'granted' : 'denied'">
+                        {{service.isEnabled ? '✓ Granted' : '✗ Denied'}}
+                      </span>
+                      <a [href]="'/services/' + service.code" class="btn-small">Learn more</a>
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <div class="empty-state">
+                <p>No services available for this organization</p>
+              </div>
+            }
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="content-panel">
+        <div class="panel-title">
+          <div>
+            <h3>Recent authentication activity</h3>
+            <p>Latest events for your user account</p>
+          </div>
+        </div>
+        <div class="activity-list">
+          @for(event of recentActivity();track event.id){
+            <div class="activity-item">
+              <span class="activity-icon" [ngClass]="'icon-' + event.type">●</span>
+              <div class="activity-details">
+                <strong>{{event.action}}</strong>
+                <small>{{event.timestamp | date:'short'}}</small>
+              </div>
+              <span class="activity-location">{{event.location}}</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </main>
+</div>
