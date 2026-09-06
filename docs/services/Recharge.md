@@ -39,12 +39,12 @@ Provider responses normalize to `SUCCEEDED`, `FAILED`, or `PENDING`. In MOCK mod
 
 The ledger procedure uses SQL transaction locking and a filtered reversal index. LIVE mode is explicitly disabled and cannot fall back to MOCK.
 
-Commission rates are stored in `finance.RechargeOperators`. The legacy dump contains role-specific commission rates, but the current CRM role mapping is not equivalent, so deployed default rates are zero until a current-role pricing policy is confirmed. Charges are zero because no verified Recharge charge rule was found.
+Role-specific operator commission rates are stored in `finance.RechargeCommissionRules` and are credited only after a successful recharge. Migration 13 maps the legacy commercial hierarchy as SH → platform administrator, MD → CMF administrator, DT → CSF administrator, and RT → CSP user. Recharge remains non-chargeable because the legacy application contains no generic Recharge charge slab.
 
 ## Database objects
 
-`database/004_recharge.sql` deploys `finance.RechargeOperators`, the `recharge_mock` provider route, Recharge clearing and commission ledger accounts, `finance.PostRechargeWalletDebit`, and schema version 4.
+`database/004_recharge.sql` deploys the operator/provider and atomic ledger foundation. `database/013_charge_slabs_recharge_commissions.sql` adds role-specific commission configuration and the verified legacy rates.
 
 ## Known limitations
 
-Live provider URLs, credentials, callbacks, exact reversal timing, and current-role commission rates require confirmation. The implementation is MOCK/test-ready and not production-ready for live financial recharge.
+Live provider URLs, credentials, callbacks, and exact reversal timing require confirmation. The implementation is MOCK/test-ready and not production-ready for live financial recharge.

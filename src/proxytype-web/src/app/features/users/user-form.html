@@ -1,0 +1,74 @@
+<main class="user-form-page">
+  <section class="form-shell">
+    <header><div><p class="eyebrow">Channel user administration</p><h1>{{editing() ? 'Edit' : 'Add'}} {{form.controls.unitType.value}} user</h1><p>Fields marked with <span class="required">*</span> are mandatory.</p></div><a [routerLink]="['/users']" [queryParams]="{type:form.controls.unitType.value}">Back to list</a></header>
+    @if(error()){<div class="error" role="alert">{{error()}}</div>}
+    @if(loading()){<div class="loading">Loading user form…</div>}@else{
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <fieldset><legend>Hierarchy and login</legend><div class="form-grid">
+        <label>User type <span class="required">*</span><select formControlName="unitType" [attr.disabled]="editing() ? true : null"><option value="CMF">CMF — Master Facilitator</option><option value="CSF">CSF — Sub Facilitator</option><option value="CSP">CSP — Channel Sales Point</option></select></label>
+        <label>Parent organization <span class="required">*</span><select formControlName="parentOrganizationUnitId"><option value="">Select parent</option>@for(unit of parentOptions();track unit.organizationUnitId){<option [value]="unit.organizationUnitId">{{unit.code}} · {{unit.name}}</option>}</select>@if(required('parentOrganizationUnitId')){<small>Select a valid parent organization.</small>}</label>
+        <label>User code <span class="required">*</span><input formControlName="userCode" maxlength="30" autocomplete="off">@if(required('userCode')){<small>Use 2–30 letters, numbers, dots, dashes, or underscores.</small>}</label>
+        @if(!editing()){<label>Temporary password <span class="required">*</span><input type="password" formControlName="password" autocomplete="new-password"><small class="hint">Minimum 14 characters. The user must change it after signing in.</small></label>}
+        <label class="toggle"><input type="checkbox" formControlName="isActive"><span>Active user</span></label>
+      </div></fieldset>
+
+      <fieldset><legend>Personal information</legend><div class="form-grid four">
+        <label>Prefix <span class="required">*</span><select formControlName="prefix"><option>Mr</option><option>Mrs</option><option>Ms</option><option>M/S</option></select></label>
+        <label>First name <span class="required">*</span><input formControlName="firstName" maxlength="30">@if(required('firstName')){<small>First name is required.</small>}</label>
+        <label>Middle name<input formControlName="middleName" maxlength="30"></label>
+        <label>Last name <span class="required">*</span><input formControlName="lastName" maxlength="30">@if(required('lastName')){<small>Last name is required.</small>}</label>
+        <label>Email <span class="required">*</span><input type="email" formControlName="email" maxlength="256">@if(required('email')){<small>Enter a valid email address.</small>}</label>
+        <label>Mobile <span class="required">*</span><input formControlName="mobile" inputmode="numeric" maxlength="10">@if(required('mobile')){<small>Enter a 10-digit mobile number.</small>}</label>
+        <label>Father name<input formControlName="fatherName" maxlength="100"></label><label>Mother name<input formControlName="motherName" maxlength="100"></label>
+        <label>Date of birth<input type="date" formControlName="dateOfBirth"></label>
+        <label>Gender<select formControlName="gender"><option value="M">Male</option><option value="F">Female</option><option value="O">Other</option></select></label>
+        <label>Marital status<select formControlName="maritalStatus"><option value="S">Single</option><option value="M">Married</option></select></label>
+        <label>PAN number @if(form.controls.unitType.value!=='CSP'){<span class="required">*</span>}<input formControlName="panNumber" maxlength="10" class="uppercase">@if(required('panNumber')){<small>Enter a valid 10-character PAN.</small>}</label>
+      </div></fieldset>
+
+      @if(form.controls.unitType.value==='CMF' || form.controls.unitType.value==='CSF'){
+        <fieldset><legend>Facilitator settings</legend><div class="form-grid">
+          @if(form.controls.unitType.value==='CMF'){<label>Margin type <span class="required">*</span><select formControlName="marginType"><option value="">Select margin type</option><option value="STANDARD">Standard</option><option value="CUSTOM">Custom</option></select></label>}
+          <label>Channel type <span class="required">*</span><select formControlName="channelType"><option value="">Select channel type</option><option value="SERVICES">Services</option><option value="SUNFORCE_POWER">Sunforce Power</option><option value="BOTH">Both</option></select></label>
+          <label>TIN / VAT number<input formControlName="tinNumber" maxlength="20"></label>
+        </div></fieldset>
+      }
+
+      @if(form.controls.unitType.value==='CSP'){
+        <fieldset><legend>CSP service and KYC</legend><div class="form-grid">
+          <label>SKU type <span class="required">*</span><input formControlName="skuType" maxlength="100">@if(required('skuType')){<small>SKU type is required.</small>}</label>
+          <label>SKU remarks / CSP code<input formControlName="skuRemarks" maxlength="100"></label>
+          <label>ASM name <span class="required">*</span><input formControlName="asmName" maxlength="150">@if(required('asmName')){<small>ASM name is required.</small>}</label>
+          <label>Aadhaar number <span class="required">*</span><input formControlName="aadhaarNumber" inputmode="numeric" maxlength="12">@if(required('aadhaarNumber')){<small>Enter a 12-digit Aadhaar number.</small>}</label>
+          <label>Latitude <span class="required">*</span><input type="number" step="any" formControlName="latitude">@if(required('latitude')){<small>Latitude is required.</small>}</label>
+          <label>Longitude <span class="required">*</span><input type="number" step="any" formControlName="longitude">@if(required('longitude')){<small>Longitude is required.</small>}</label>
+          <label class="file-field">Aadhaar document <span class="required">*</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument($event)">@if(existingDocumentName()){<span class="existing-file">Current: {{existingDocumentName()}} <button type="button" (click)="downloadDocument()">Download</button></span>}@if(required('aadhaarDocumentName')){<small>Upload a PDF, JPG, or PNG file up to 5 MB.</small>}</label>
+        </div></fieldset>
+      }
+
+      <fieldset><legend>Company information</legend><div class="form-grid">
+        <label>Company name <span class="required">*</span><input formControlName="companyName" maxlength="100"></label>
+        <label>Company address 1 <span class="required">*</span><input formControlName="companyAddress1" maxlength="100"></label>
+        <label>Company address 2<input formControlName="companyAddress2" maxlength="100"></label><label>Company address 3<input formControlName="companyAddress3" maxlength="100"></label>
+        <label>Company city <span class="required">*</span><input formControlName="companyCity" maxlength="100"></label>
+        <label>Company region <span class="required">*</span><input formControlName="companyRegion" maxlength="100"></label>
+        <label>Company state <span class="required">*</span><input formControlName="companyState" maxlength="100"></label>
+        <label>Company district <span class="required">*</span><input formControlName="companyDistrict" maxlength="100"></label>
+        <label>Company pincode <span class="required">*</span><input formControlName="companyPincode" inputmode="numeric" maxlength="6">@if(required('companyPincode')){<small>Enter a 6-digit pincode.</small>}</label>
+        <label>Company telephone<input formControlName="companyPhone" inputmode="numeric" maxlength="11"></label>
+      </div></fieldset>
+
+      <fieldset><legend>Residential information</legend><label class="same-address"><input type="checkbox" formControlName="sameAddress" (change)="copyCompanyAddress()"><span>Residential address is the same as company address</span></label><div class="form-grid">
+        <label>Residential address 1 <span class="required">*</span><input formControlName="residentialAddress1" maxlength="100"></label>
+        <label>Residential address 2<input formControlName="residentialAddress2" maxlength="100"></label><label>Residential address 3<input formControlName="residentialAddress3" maxlength="100"></label>
+        <label>Residential city <span class="required">*</span><input formControlName="residentialCity" maxlength="100"></label>
+        <label>Residential region <span class="required">*</span><input formControlName="residentialRegion" maxlength="100"></label>
+        <label>Residential state <span class="required">*</span><input formControlName="residentialState" maxlength="100"></label>
+        <label>Residential district <span class="required">*</span><input formControlName="residentialDistrict" maxlength="100"></label>
+        <label>Residential pincode <span class="required">*</span><input formControlName="residentialPincode" inputmode="numeric" maxlength="6">@if(required('residentialPincode')){<small>Enter a 6-digit pincode.</small>}</label>
+        <label>Residential telephone<input formControlName="residentialPhone" inputmode="numeric" maxlength="11"></label>
+      </div></fieldset>
+      <div class="actions"><a [routerLink]="['/users']" [queryParams]="{type:form.controls.unitType.value}">Cancel</a><button type="submit" [disabled]="saving()">{{saving() ? 'Saving…' : editing() ? 'Save changes' : 'Create user'}}</button></div>
+    </form>}
+  </section>
+</main>

@@ -6,6 +6,8 @@ namespace ProxyType.Api.Data;
 public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> options) : DbContext(options)
 {
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserDocument> UserDocuments => Set<UserDocument>();
     public DbSet<AppRole> Roles => Set<AppRole>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -15,6 +17,7 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
     public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
     public DbSet<FinancialService> Services => Set<FinancialService>();
     public DbSet<OrganizationServicePermission> OrganizationServicePermissions => Set<OrganizationServicePermission>();
+    public DbSet<PricingRule> PricingRules => Set<PricingRule>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Provider> Providers => Set<Provider>();
     public DbSet<ServiceProviderRoute> ServiceProviderRoutes => Set<ServiceProviderRoute>();
@@ -25,6 +28,7 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<RechargeOperator> RechargeOperators => Set<RechargeOperator>();
+    public DbSet<RechargeCommissionRule> RechargeCommissionRules => Set<RechargeCommissionRule>();
     public DbSet<AepsBank> AepsBanks => Set<AepsBank>();
     public DbSet<AepsTransactionDetail> AepsTransactionDetails => Set<AepsTransactionDetail>();
 
@@ -39,6 +43,30 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
             entity.Property(x => x.RowVersion).IsRowVersion();
             entity.Ignore("NormalizedUsername");
             entity.Ignore("NormalizedEmail");
+        });
+
+        modelBuilder.Entity<UserProfile>(entity =>
+        {
+            entity.ToTable("UserProfiles", "auth");
+            entity.HasKey(x => x.UserId);
+            entity.Property(x => x.ProfileJson).HasColumnType("nvarchar(max)");
+            entity.Property(x => x.AadhaarDocumentContent).HasColumnType("varbinary(max)");
+            entity.Property(x => x.AadhaarDocumentContentType).HasMaxLength(100);
+            entity.Property(x => x.AadhaarDocumentFileName).HasMaxLength(255);
+            entity.HasOne(x => x.User).WithOne(x => x.Profile).HasForeignKey<UserProfile>(x => x.UserId);
+        });
+
+        modelBuilder.Entity<UserDocument>(entity =>
+        {
+            entity.ToTable("UserDocuments", "auth");
+            entity.HasKey(x => x.UserDocumentId);
+            entity.Property(x => x.UserDocumentId).HasDefaultValueSql("NEWSEQUENTIALID()");
+            entity.Property(x => x.DocumentType).HasMaxLength(30);
+            entity.Property(x => x.FileName).HasMaxLength(255);
+            entity.Property(x => x.ContentType).HasMaxLength(100);
+            entity.Property(x => x.Content).HasColumnType("varbinary(max)");
+            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+            entity.HasIndex(x => new { x.UserId, x.FileName }).IsUnique();
         });
 
         modelBuilder.Entity<AppRole>(entity =>
@@ -72,7 +100,7 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
 
         modelBuilder.Entity<OrganizationUnit>(entity =>
         {
-            entity.ToTable("OrganizationUnits", "org");
+            entity.ToTable("OrganizationUnits", "org", table => table.UseSqlOutputClause(false));
             entity.HasKey(x => x.OrganizationUnitId);
             entity.Property(x => x.OrganizationUnitId).HasDefaultValueSql("NEWSEQUENTIALID()");
             entity.Property(x => x.RowVersion).IsRowVersion();
@@ -111,6 +139,22 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
             entity.Property(x => x.OrganizationServicePermissionId).HasDefaultValueSql("NEWSEQUENTIALID()");
             entity.HasOne(x => x.OrganizationUnit).WithMany().HasForeignKey(x => x.OrganizationUnitId);
             entity.HasOne(x => x.Service).WithMany().HasForeignKey(x => x.ServiceId);
+        });
+
+        modelBuilder.Entity<PricingRule>(entity =>
+        {
+            // PricingRules has TR_PricingRules_PreventOverlap. SQL Server rejects EF's
+            // default OUTPUT clause on a table with an enabled trigger.
+            entity.ToTable("PricingRules", "catalog", table => table.UseSqlOutputClause(false));
+            entity.HasKey(x => x.PricingRuleId);
+            entity.Property(x => x.PricingRuleId).HasDefaultValueSql("NEWSEQUENTIALID()");
+            entity.Property(x => x.AmountFrom).HasPrecision(19, 4);
+            entity.Property(x => x.AmountTo).HasPrecision(19, 4);
+            entity.Property(x => x.Rate).HasPrecision(19, 6);
+            entity.Property(x => x.TdsRate).HasPrecision(9, 6);
+            entity.Property(x => x.GstRate).HasPrecision(9, 6);
+            entity.HasOne(x => x.Service).WithMany().HasForeignKey(x => x.ServiceId);
+            entity.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
         });
 
         modelBuilder.Entity<AuditLog>(entity =>
@@ -155,6 +199,7 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
             entity.ToTable("FundRequests", "finance");
             entity.HasKey(x => x.FundRequestId);
             entity.Property(x => x.FundRequestId).HasDefaultValueSql("NEWSEQUENTIALID()");
+            entity.Property(x => x.TransactionDate).HasColumnType("date");
             entity.Property(x => x.Amount).HasPrecision(19, 4);
             entity.Property(x => x.PaymentMode).HasMaxLength(20).IsRequired();
             entity.Property(x => x.ExternalReference).HasMaxLength(150);
@@ -207,6 +252,17 @@ public sealed class ProxyTypeDbContext(DbContextOptions<ProxyTypeDbContext> opti
             entity.Property(x => x.CommissionType).HasMaxLength(20).IsRequired();
             entity.Property(x => x.CommissionValue).HasPrecision(18, 4);
             entity.HasIndex(x => new { x.Label, x.Type }).IsUnique();
+        });
+
+        modelBuilder.Entity<RechargeCommissionRule>(entity =>
+        {
+            entity.ToTable("RechargeCommissionRules", "finance");
+            entity.HasKey(x => x.RechargeCommissionRuleId);
+            entity.Property(x => x.RechargeCommissionRuleId).HasDefaultValueSql("NEWSEQUENTIALID()");
+            entity.Property(x => x.Rate).HasPrecision(19, 6);
+            entity.HasOne(x => x.Operator).WithMany().HasForeignKey(x => x.RechargeOperatorId);
+            entity.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
+            entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
         });
 
         modelBuilder.Entity<AepsBank>(entity =>

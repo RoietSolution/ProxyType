@@ -1258,3 +1258,4 @@ G:\ProxyType\src\ProxyType.Api\bin\Debug\fund-request-final-tests\runtimes\win\l
 G:\ProxyType\src\ProxyType.Api\bin\Debug\fund-request-final-tests\runtimes\win\lib\net6.0\System.Runtime.Caching.dll
 G:\ProxyType\src\ProxyType.Api\bin\Debug\fund-request-final-tests\runtimes\win\lib\net6.0\System.Security.Cryptography.ProtectedData.dll
 G:\ProxyType\src\ProxyType.Api\bin\Debug\fund-request-final-tests\runtimes\win\lib\net6.0\System.Windows.Extensions.dll
+G:\ProxyType\src\ProxyType.Api\obj\Debug\net9.0\ProxyType.Api.sourcelink.json

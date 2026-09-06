@@ -157,3 +157,4 @@ G:\ProxyType\src\ProxyType.Api\obj\Release\net9.0\refint\ProxyType.Api.dll
 G:\ProxyType\src\ProxyType.Api\obj\Release\net9.0\ProxyType.Api.pdb
 G:\ProxyType\src\ProxyType.Api\obj\Release\net9.0\ProxyType.Api.genruntimeconfig.cache
 G:\ProxyType\src\ProxyType.Api\obj\Release\net9.0\ref\ProxyType.Api.dll
+G:\ProxyType\src\ProxyType.Api\obj\Release\net9.0\ProxyType.Api.sourcelink.json

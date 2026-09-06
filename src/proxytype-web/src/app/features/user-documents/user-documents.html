@@ -1,0 +1,23 @@
+<main class="documents-page"><section class="documents-shell">
+  <header><div><p class="eyebrow">Identity records</p><h1>User Documents</h1><p>Upload and review documents for users within your permitted hierarchy.</p></div><a routerLink="/dashboard">Back to dashboard</a></header>
+  @if(error()){<div class="error" role="alert">{{error()}}</div>}@if(message()){<div class="success">{{message()}}</div>}
+  <section class="selector-card"><div class="selector-grid">
+    <label>User type <span class="required">*</span><select [ngModel]="unitType()" (ngModelChange)="unitType.set($event);loadOwners()"><option value="CMF">CMF</option><option value="CSF">CSF</option><option value="CSP">CSP</option></select></label>
+    <label>Search users<input [ngModel]="search()" (ngModelChange)="search.set($event)" (keyup.enter)="loadOwners()" placeholder="Name, code, email or mobile"></label>
+    <button type="button" (click)="loadOwners()">Search</button>
+    <label class="user-select">User name / code <span class="required">*</span><select [ngModel]="selectedUserId()" (ngModelChange)="selectUser($event)"><option value="">{{loadingUsers() ? 'Loading users…' : 'Select user'}}</option>@for(owner of owners();track owner.userId){<option [value]="owner.userId">{{owner.displayName}} [{{owner.userCode}}] · {{owner.organizationCode}}</option>}</select></label>
+  </div></section>
+  @if(selectedUserId()){
+    <section class="upload-card"><div><h2>Upload document</h2><p>Accepted formats: JPG, JPEG, and PDF. Maximum size: 1 MB.</p></div><div class="upload-grid">
+      <label>Document type<select [ngModel]="documentType()" (ngModelChange)="documentType.set($event)"><option value="APPLICATION_FORM">Application Form</option><option value="ADDRESS_PROOF">Address Proof</option><option value="ID_PROOF">ID Proof</option><option value="PAN_CARD">PAN Card</option></select></label>
+      <label>Document file <span class="required">*</span><input type="file" accept=".jpg,.jpeg,.pdf,image/jpeg,application/pdf" (change)="selectFile($event)"><small>{{fileName() || 'Choose a document file'}}</small></label>
+      <button type="button" (click)="upload()" [disabled]="uploading() || !fileName()">{{uploading() ? 'Uploading…' : 'Upload document'}}</button>
+    </div></section>
+    <section class="list-card"><div class="list-head"><div><h2>Uploaded documents</h2><p>Upload history for the selected user</p></div><button type="button" class="secondary" (click)="loadDocuments()">Refresh</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Document type</th><th>Document name</th><th>Size</th><th>Uploaded date</th><th>Uploaded by</th><th>Download</th></tr></thead><tbody>
+        @for(item of documents();track item.userDocumentId){<tr><td><span class="type">{{typeLabel(item.documentType)}}</span></td><td><strong>{{item.fileName}}</strong></td><td>{{item.fileSize / 1024 | number:'1.0-1'}} KB</td><td>{{item.createdAtUtc | date:'mediumDate'}}</td><td>{{item.uploadedBy}}</td><td><button type="button" class="download" (click)="download(item)">Download</button></td></tr>}
+        @empty{<tr><td colspan="6" class="empty">{{loadingDocuments() ? 'Loading documents…' : 'No documents uploaded for this user.'}}</td></tr>}
+      </tbody></table></div>
+    </section>
+  }
+</section></main>

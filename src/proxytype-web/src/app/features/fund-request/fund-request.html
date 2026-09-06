@@ -1,34 +1,49 @@
 <main class="service-page">
   <section class="service-card">
     <div class="page-head">
-      <div><p class="eyebrow">Manual wallet funding</p><h1>Fund Request</h1><p class="intro">Submit an NEFT payment proof for authorized review and wallet credit.</p></div>
+      <div><p class="eyebrow">Manual wallet funding</p><h1>Wallet Top-up Request</h1><p class="intro">Submit your NEFT payment details for authorized review and wallet credit.</p></div>
       <button type="button" class="close" aria-label="Back to dashboard" (click)="close()">×</button>
     </div>
-    <div class="notice"><strong>NEFT only</strong><span>Use the configured business bank account. The wallet is credited only after an authorized reviewer approves this request.</span></div>
+    @if(instructions(); as deposit) {
+      @if(deposit.isConfigured) {
+        <section class="deposit-card">
+          @if(deposit.qrCodeUrl){<img [src]="deposit.qrCodeUrl" alt="Wallet top-up payment QR code">}
+          <div><p class="eyebrow">Fund deposit information</p><h2>Pay by {{deposit.paymentMode}}</h2>
+            <dl><div><dt>Bank</dt><dd>{{deposit.bankName}}</dd></div><div><dt>Account holder</dt><dd>{{deposit.accountHolderName}}</dd></div><div><dt>Account number</dt><dd>{{deposit.accountNumber}}</dd></div><div><dt>IFSC</dt><dd>{{deposit.ifscCode}}</dd></div></dl>
+            <p>Send funds from your registered bank account. After payment, submit the UTR and screenshot below.</p>
+          </div>
+        </section>
+      } @else {
+        <div class="notice warning"><strong>Deposit account unavailable</strong><span>Ask your administrator for the approved NEFT bank details before making a transfer.</span></div>
+      }
+    } @else {
+      <div class="notice"><strong>NEFT only</strong><span>Loading the approved deposit account…</span></div>
+    }
     <form [formGroup]="form" (ngSubmit)="submit()">
       <div class="form-grid">
         <label>Amount (INR)<input type="number" formControlName="amount" min="1" max="1000000" step="1"><small>Minimum amount: ₹1. Legacy maximum is not verified.</small></label>
+        <label>Transaction date<input type="date" formControlName="transactionDate" [max]="today"><small>Use the actual payment date. Past dates are allowed.</small></label>
         <label>UTR / transaction reference<input formControlName="externalReference" maxlength="150" autocomplete="off" placeholder="Enter your NEFT reference"></label>
       </div>
       <label class="file-field">Payment screenshot / proof<input type="file" accept="image/jpeg,image/png,image/gif" (change)="selectProof($event)"><small>{{proof()?.name || 'JPG, PNG, or GIF up to 5 MB'}}</small></label>
       @if(error()){<div class="error" role="alert">{{error()}}</div>}
-      <button type="submit" [disabled]="loading()">{{loading() ? 'Submitting…' : 'Submit Fund Request'}}</button>
+      <button type="submit" [disabled]="loading()">{{loading() ? 'Submitting…' : 'Submit Top-up Request'}}</button>
     </form>
     @if(result(); as response){
       <section class="result" [class.failed]="response.status === 'REJECTED'">
         <div class="result-head"><div><p class="eyebrow">Request result</p><h2>{{response.status}}</h2></div><button type="button" class="result-close" (click)="reset()">×</button></div>
-        <dl><div><dt>Reference</dt><dd>{{response.transactionReference}}</dd></div><div><dt>UTR</dt><dd>{{response.externalReference}}</dd></div><div><dt>Amount</dt><dd>₹{{response.amount}}</dd></div>@if(response.receiptNumber){<div><dt>Receipt</dt><dd>{{response.receiptNumber}}</dd></div>}</dl>
+        <dl><div><dt>Reference</dt><dd>{{response.transactionReference}}</dd></div><div><dt>Transaction date</dt><dd>{{response.transactionDate | date:'mediumDate':'UTC'}}</dd></div><div><dt>UTR</dt><dd>{{response.externalReference}}</dd></div><div><dt>Amount</dt><dd>₹{{response.amount}}</dd></div>@if(response.receiptNumber){<div><dt>Receipt</dt><dd>{{response.receiptNumber}}</dd></div>}</dl>
         @if(response.walletCredited){<p class="success">Wallet credited after authorized approval.</p>}
         <div class="actions"><button type="button" class="secondary" (click)="reset()">New request</button><button type="button" (click)="close()">Back to home</button></div>
       </section>
     }
     <section class="history">
-      <div class="section-head"><div><p class="eyebrow">Review queue</p><h2>Fund Request history</h2></div><span>{{records().length}} shown</span></div>
+      <div class="section-head"><div><p class="eyebrow">Requests</p><h2>Top-up request history</h2></div><span>{{records().length}} shown</span></div>
       @if(loadingRecords()){<p class="empty">Loading requests…</p>} @else {
         <div class="request-list">
           @for(record of records(); track record.fundRequestId){
             <article class="request-row" [class.reviewable]="record.canReview">
-              <div><strong>{{record.requesterName}}</strong><small>{{record.organizationCode}} · {{record.paymentMode}} · {{record.createdAtUtc | date:'medium'}}</small></div>
+              <div><strong>{{record.requesterName}}</strong><small>{{record.organizationCode}} · {{record.paymentMode}} · Paid {{record.transactionDate | date:'mediumDate':'UTC'}} · Requested {{record.createdAtUtc | date:'medium'}}</small></div>
               <div><b>₹{{record.amount}}</b><small>{{record.externalReference}}</small></div>
               <span class="status" [class.approved]="record.status === 'APPROVED'" [class.rejected]="record.status === 'REJECTED'">{{record.status}}</span>
               @if(record.proofUrl){<a [href]="record.proofUrl" target="_blank" rel="noopener">Proof</a>}

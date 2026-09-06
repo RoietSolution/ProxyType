@@ -1,27 +1,63 @@
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand"><span class="brand-mark">P</span><span>ProxyType</span></div>
-    <nav aria-label="Main navigation"><p>Workspace</p>
-      <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span>Dashboard</button>
-      <button [class.active]="view()==='hierarchy'" (click)="selectView('hierarchy')"><span>⌘</span>Organization</button>
-      <button [class.active]="view()==='services'" (click)="selectView('services')"><span>◇</span>Services</button>
-      <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span>Login Activity</button>
-      <a class="nav-link" routerLink="/services/fino-dmt">
-        <span class="nav-icon"><img src="/icon-pack/Money-Transfer.svg" alt=""></span>Fino DMT</a><a class="nav-link" routerLink="/services/aeps">
-        <span class="nav-icon"><img src="/icon-pack/AePS-Payment.jpeg" alt=""></span>AEPS</a><a class="nav-link" routerLink="/services/fund-request">
-          <span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Fund Request</a>
-      <a class="nav-link" routerLink="/services/recharge"><span class="nav-icon"><img src="/icon-pack/Mobile-Recharge.svg" alt=""></span>Recharge</a>
-      <a class="nav-link" routerLink="/services/wallet-to-wallet"><span class="nav-icon"><img src="/icon-pack/Wallet-Transfer.svg" alt=""></span>Wallet to Wallet</a>
-      <p class="nav-group-label">User:</p>
-      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSP'}"><span>♙</span>CSP List</a>
-      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSF'}"><span>♙</span>CSF List</a>
-      <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CMF'}"><span>♙</span>CMF List</a>
-      <a class="nav-link" routerLink="/transactions"><span>↗</span>Transactions</a>
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <details class="nav-group" open>
+        <summary><span class="group-icon">▦</span><strong>Workspace</strong><i></i></summary>
+        <div class="nav-children">
+          <button [class.active]="view()==='overview'" (click)="selectView('overview')"><span>⌂</span><b>Dashboard</b></button>
+          <button [class.active]="view()==='hierarchy'" (click)="selectView('hierarchy')"><span>⌘</span><b>Organization</b></button>
+          <button [class.active]="view()==='services'" (click)="selectView('services')"><span>◇</span><b>Service access</b></button>
+          <button [class.active]="view()==='wallet'" (click)="selectView('wallet')"><span>₹</span><b>Wallet balance</b></button>
+          <button [class.active]="view()==='security'" (click)="selectView('security')"><span>◉</span><b>Login activity</b></button>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary><span class="group-icon">◆</span><strong>Financial services</strong><i></i></summary>
+        <div class="nav-children">
+          <details class="nav-subgroup">
+            <summary><span class="nav-icon"><img src="/icon-pack/Money-Transfer.svg" alt=""></span><strong>Money movement</strong><i></i></summary>
+            <div class="nav-children nav-level-three">
+              <a class="nav-link" routerLink="/services/fino-dmt" routerLinkActive="active"><span class="branch-dot"></span>Fino DMT</a>
+              <a class="nav-link" routerLink="/services/fund-request" routerLinkActive="active"><span class="branch-dot"></span>Wallet Top-up</a>
+              <a class="nav-link" routerLink="/services/wallet-to-wallet" routerLinkActive="active"><span class="branch-dot"></span>Wallet to Wallet</a>
+            </div>
+          </details>
+          <a class="nav-link" routerLink="/services/aeps" routerLinkActive="active"><span class="nav-icon"><img src="/icon-pack/AePS-Payment.jpeg" alt=""></span>AEPS</a>
+          <a class="nav-link" routerLink="/services/recharge" routerLinkActive="active"><span class="nav-icon"><img src="/icon-pack/Mobile-Recharge.svg" alt=""></span>Recharge</a>
+        </div>
+      </details>
+
+      @if(user()?.roles?.includes('PLATFORM_ADMIN')) {
+        <details class="nav-group">
+          <summary><span class="group-icon">₹</span><strong>Pricing</strong><i></i></summary>
+          <div class="nav-children">
+            <a class="nav-link" routerLink="/charge-slabs" routerLinkActive="active"><span>₹</span>Charge Slabs</a>
+            <a class="nav-link" routerLink="/recharge-commissions" routerLinkActive="active"><span>%</span>Recharge Commission</a>
+          </div>
+        </details>
+      }
+
+      <details class="nav-group">
+        <summary><span class="group-icon">♙</span><strong>User management</strong><i></i></summary>
+        <div class="nav-children">
+          <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSP'}" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span class="branch-dot"></span>CSP List</a>
+          <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CSF'}" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span class="branch-dot"></span>CSF List</a>
+          <a class="nav-link" [routerLink]="['/users']" [queryParams]="{type:'CMF'}" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span class="branch-dot"></span>CMF List</a>
+          <a class="nav-link" routerLink="/user-documents" routerLinkActive="active"><span>▤</span>User Documents</a>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary><span class="group-icon">↗</span><strong>Reports</strong><i></i></summary>
+        <div class="nav-children"><a class="nav-link" routerLink="/transactions" routerLinkActive="active"><span class="branch-dot"></span>Transactions</a></div>
+      </details>
     </nav>
     <div class="sidebar-foot"><b>✓</b><div><strong>Protected session</strong><small>Role and scope enforced</small></div></div>
   </aside>
   <main>
-    <header><div><p>Platform / {{ view() }}</p><h1>{{ view()==='overview' ? 'Operations overview' : view()==='hierarchy' ? 'Organization hierarchy' : view()==='services' ? 'Service permissions' : 'Security activity' }}</h1></div>
+    <header><div><p>Platform / {{ view() }}</p><h1>{{ view()==='overview' ? 'Operations overview' : view()==='hierarchy' ? 'Organization hierarchy' : view()==='services' ? 'Service permissions' : view()==='wallet' ? 'Wallet balance' : 'Security activity' }}</h1></div>
       <div class="profile"><span>{{ (user()?.displayName || user()?.username || 'U').charAt(0).toUpperCase() }}</span><div><strong>{{ user()?.displayName || user()?.username }}</strong><small>{{ user()?.roles?.[0] || 'Member' }}</small></div><button (click)="logout()">Sign out</button></div>
     </header>
     @if(error()){<div class="alert" role="alert">{{error()}}<button (click)="error.set('')">Dismiss</button></div>}
@@ -38,7 +74,7 @@
       <section class="overview-grid">
         <article class="panel services-panel"><div class="panel-title"><div><h3>Available services</h3><p>Effective for your primary organization</p></div><button (click)="selectView('services')">Manage access</button></div>
           <div class="service-tabs" role="tablist" aria-label="Service categories">@for(tab of serviceTabs;track tab.key){<button type="button" class="service-tab" [class.active]="activeServiceTab()===tab.key" [attr.aria-selected]="activeServiceTab()===tab.key" (click)="selectServiceTab(tab.key)">{{tab.label}}</button>}</div>
-          <div class="service-list">@for(service of visibleDashboardServices();track service.serviceId){<a class="service-entry" [routerLink]="serviceRoute(service.code)" [class.catalog-only]="!serviceRoute(service.code)" [class.featured]="isFeaturedService(service)" [attr.title]="serviceRoute(service.code) ? 'Open ' + service.name : 'Workflow not implemented yet'"><span class="service-icon" [class]="'service-icon ' + serviceTone(service.code)"><img [src]="serviceIconPath(service.code)" [alt]="service.name"></span><div><strong>{{service.name}}</strong><small>{{service.category}}</small></div></a>}@empty{<p class="empty">No services are available in this category.</p>}</div>
+          <div class="service-list">@for(service of visibleDashboardServices();track service.serviceId){<a class="service-entry" [routerLink]="serviceRoute(service.code)" [class.catalog-only]="!serviceRoute(service.code)" [attr.title]="serviceRoute(service.code) ? 'Open ' + service.name : 'Workflow not implemented yet'"><span class="service-icon" [class]="'service-icon ' + serviceTone(service.code)"><img [src]="serviceIconPath(service.code)" [alt]="service.name" height="75px" width="75px"></span><div><strong>{{service.name}}</strong><small>{{service.category}}</small></div></a>}@empty{<p class="empty">No services are available in this category.</p>}</div>
         </article>
         <article class="panel"><div class="panel-title"><div><h3>Hierarchy health</h3><p>Units within your permitted branch</p></div></div><div class="hierarchy-flow"><span>CMF<b>{{dashboard()?.hierarchy?.cmf || 0}}</b></span><i></i><span>CSF<b>{{dashboard()?.hierarchy?.csf || 0}}</b></span><i></i><span>CSP<b>{{dashboard()?.hierarchy?.csp || 0}}</b></span></div><div class="scope-note"><b>✓</b><p><strong>Scope isolation enabled</strong><small>Your account can only read and manage its assigned branch.</small></p></div></article>
       </section>
@@ -49,6 +85,34 @@
     } @else if(view()==='services'){
       <section class="content-panel"><div class="permission-head"><div><h3>Effective service access</h3><p>Parent denials always take precedence over child grants.</p></div><label>Organization<select [value]="selectedOrganizationId()" (change)="selectOrganization($event)">@for(unit of organizations();track unit.organizationUnitId){<option [value]="unit.organizationUnitId">{{unit.code}} · {{unit.name}}</option>}</select></label></div>
         <div class="permission-grid">@for(service of effectiveServices();track service.serviceId){<article><span>{{service.name.charAt(0)}}</span><div><small>{{service.category}}</small><strong>{{service.name}}</strong><em>{{service.decisionReason}}</em></div><section><button [class.selected]="service.isAllowed" [disabled]="savingServiceId()===service.serviceId" (click)="changePermission(service,'ALLOW')">Allow</button><button class="deny" [class.selected]="!service.isAllowed" [disabled]="savingServiceId()===service.serviceId" (click)="changePermission(service,'DENY')">Deny</button></section></article>}@empty{<p class="empty">No effective service records are available.</p>}</div>
+      </section>
+    } @else if(view()==='wallet') {
+      <section class="wallet-view">
+        @if(walletLoading()) {
+          <div class="loading wallet-loading"><span></span><p>Loading wallet balances…</p></div>
+        } @else if(walletBalance(); as wallet) {
+          <section class="wallet-hero">
+            <div><p class="eyebrow">Combined available balance</p><strong>{{wallet.totalBalance | currency:wallet.currency:'symbol':'1.2-2':'en-IN'}}</strong><small>Across your Main and AEPS wallets</small></div>
+            <button type="button" (click)="loadWalletBalance()">Refresh balance</button>
+          </section>
+          <section class="wallet-cards">
+            @for(account of wallet.accounts; track account.type) {
+              <article [class.aeps]="account.type==='AEPS'">
+                <div class="wallet-card-head"><span>{{account.type==='MAIN' ? '₹' : 'A'}}</span><em [class.inactive]="!account.isActive">{{account.isActive ? 'Active' : 'Not opened'}}</em></div>
+                <small>{{account.name}}</small>
+                <strong>{{account.balance | currency:account.currency:'symbol':'1.2-2':'en-IN'}}</strong>
+                <p>{{account.type==='MAIN' ? 'Used for transfers, recharge and service payments.' : 'Credits received from successful AEPS cash withdrawals.'}}</p>
+              </article>
+            }
+          </section>
+          <section class="content-panel wallet-activity">
+            <div class="panel-title"><div><h3>Recent balance activity</h3><p>Latest posted entries across both wallets</p></div><span class="count">{{wallet.recentActivity.length}} entries</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Reference</th><th>Wallet</th><th>Description</th><th>Amount</th><th>Balance change</th><th>Posted</th></tr></thead><tbody>
+              @for(entry of wallet.recentActivity; track entry.journalEntryId) {<tr><td><strong>{{entry.reference}}</strong></td><td><span class="tag">{{entry.accountType}}</span></td><td><strong>{{entry.description}}</strong><small>{{entry.memo || 'Posted ledger entry'}}</small></td><td>{{entry.amount | currency:wallet.currency:'symbol':'1.2-2':'en-IN'}}</td><td><strong class="balance-change" [class.debit]="entry.balanceChange < 0">{{entry.balanceChange > 0 ? '+' : ''}}{{entry.balanceChange | currency:wallet.currency:'symbol':'1.2-2':'en-IN'}}</strong></td><td>{{entry.postedAtUtc | date:'medium'}}</td></tr>}
+              @empty {<tr><td colspan="6" class="empty">No wallet activity has been posted yet.</td></tr>}
+            </tbody></table></div>
+          </section>
+        }
       </section>
     } @else {
       <section class="content-panel"><div class="panel-title"><div><h3>Recent authentication activity</h3><p>Latest events for your user account</p></div></div><div class="activity-list">@for(event of dashboard()?.recentSecurityActivity || [];track event.occurredAtUtc){<div><span [class.failed]="!event.succeeded">{{event.succeeded ? '✓' : '!'}}</span><div><strong>{{event.succeeded ? 'Successful sign-in' : 'Sign-in rejected'}}</strong><small>{{event.ipAddress || 'Address unavailable'}}</small></div><time>{{event.occurredAtUtc | date:'medium'}}</time></div>}@empty{<p class="empty">No recent authentication activity.</p>}</div></section>

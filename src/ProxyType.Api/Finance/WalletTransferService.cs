@@ -13,7 +13,8 @@ namespace ProxyType.Api.Finance;
 public sealed class WalletTransferService(
     ProxyTypeDbContext dbContext,
     ICurrentScopeService scopeService,
-    ServicePermissionService permissionService)
+    ServicePermissionService permissionService,
+    PricingService pricingService)
 {
     public async Task<WalletTransferReceiverResponse?> FindReceiverAsync(string mobile, CancellationToken cancellationToken = default)
     {
@@ -49,13 +50,14 @@ public sealed class WalletTransferService(
         var existing = await dbContext.ServiceTransactions.SingleOrDefaultAsync(t => t.OrganizationUnitId == senderMembership.OrganizationUnitId && t.ClientIdempotencyKey == request.IdempotencyKey, cancellationToken);
         if (existing is not null) return await ToResponseAsync(existing, receiver.DisplayName, request.ReceiverMobile, cancellationToken);
 
+        var charge = await pricingService.ChargeAsync(service.ServiceId, scopeService.UserId, request.Amount, cancellationToken);
         var reference = $"WTW{DateTime.UtcNow:yyyyMMddHHmmssfff}{Random.Shared.Next(100, 999)}";
         var transaction = new ServiceTransaction
         {
             ServiceTransactionId = Guid.NewGuid(), OrganizationUnitId = senderMembership.OrganizationUnitId, UserId = scopeService.UserId,
             ServiceId = service.ServiceId, CounterpartyUserId = receiver.UserId, CounterpartyOrganizationUnitId = receiver.OrganizationUnitId,
             TransactionReference = reference, ClientIdempotencyKey = request.IdempotencyKey, Status = "CREATED", Amount = request.Amount,
-            ChargeAmount = 0, DebitAmount = request.Amount, CreditAmount = request.Amount,
+            ChargeAmount = charge, DebitAmount = request.Amount + charge, CreditAmount = request.Amount,
             RequestSummaryJson = JsonSerializer.Serialize(new { receiver.UserId, ReceiverMobile = request.ReceiverMobile, request.Amount }),
             RequestAtUtc = now, CreatedAtUtc = now, UpdatedAtUtc = now
         };
@@ -65,7 +67,7 @@ public sealed class WalletTransferService(
         {
             await EnsureWalletAsync(scopeService.UserId, cancellationToken);
             await EnsureWalletAsync(receiver.UserId, cancellationToken);
-            await dbContext.Database.ExecuteSqlInterpolatedAsync($"EXEC finance.PostWalletToWalletTransfer {Guid.NewGuid()}, {transaction.ServiceTransactionId}, {"WALLET_TRANSFER:" + transaction.TransactionReference}, {transaction.TransactionReference}, {scopeService.UserId}, {receiver.UserId}, {request.Amount}, {0m}", cancellationToken);
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"EXEC finance.PostWalletToWalletTransfer {Guid.NewGuid()}, {transaction.ServiceTransactionId}, {"WALLET_TRANSFER:" + transaction.TransactionReference}, {transaction.TransactionReference}, {scopeService.UserId}, {receiver.UserId}, {request.Amount}, {charge}", cancellationToken);
             transaction.Status = "SUCCEEDED";
         }
         catch (DbException exception)
@@ -76,7 +78,7 @@ public sealed class WalletTransferService(
             transaction.DebitAmount = 0; transaction.CreditAmount = 0;
         }
         transaction.ResponseAtUtc = DateTime.UtcNow; transaction.CompletedAtUtc = transaction.ResponseAtUtc; transaction.UpdatedAtUtc = transaction.ResponseAtUtc.Value;
-        dbContext.Receipts.Add(new Receipt { ReceiptId = Guid.NewGuid(), ReceiptNumber = $"RCP-{reference}", ServiceTransactionId = transaction.ServiceTransactionId, IssuedToUserId = transaction.UserId, IssuedAtUtc = DateTime.UtcNow, SnapshotJson = JsonSerializer.Serialize(new { transaction.TransactionReference, transaction.Status, transaction.Amount, Receiver = receiver.DisplayName }) });
+        dbContext.Receipts.Add(new Receipt { ReceiptId = Guid.NewGuid(), ReceiptNumber = $"RCP-{reference}", ServiceTransactionId = transaction.ServiceTransactionId, IssuedToUserId = transaction.UserId, IssuedAtUtc = DateTime.UtcNow, SnapshotJson = JsonSerializer.Serialize(new { transaction.TransactionReference, transaction.Status, transaction.Amount, transaction.ChargeAmount, transaction.DebitAmount, Receiver = receiver.DisplayName }) });
         await dbContext.SaveChangesAsync(cancellationToken);
         return await ToResponseAsync(transaction, receiver.DisplayName, request.ReceiverMobile, cancellationToken);
     }

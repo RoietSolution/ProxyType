@@ -21,6 +21,8 @@ The legacy approval write is not atomic or idempotent. ProxyType does not reprod
 
 The service code is `fund_request`, with display name `Fund Request`. It does not reuse the UPI Add Money hosted provider flow and has no provider route.
 
+The authenticated top-up page reads the NEFT destination from `FundRequest:DepositAccount` configuration and displays the bank name, account holder, account number, IFSC, and optional QR image. Deployment configuration must supply those values; banking data is not hard-coded in source control.
+
 Create request:
 
 - `POST /api/services/fund-request/requests` (authenticated multipart request)

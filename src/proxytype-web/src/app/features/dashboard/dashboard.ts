@@ -1,23 +1,27 @@
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { DashboardData, EffectiveService, OrganizationUnit, ServiceDefinition } from '../../core/models';
+import { DashboardData, EffectiveService, OrganizationUnit, ServiceDefinition, WalletBalance } from '../../core/models';
 import { PortalApiService } from '../../core/portal-api.service';
 
-type View = 'overview'|'hierarchy'|'services'|'security';
+type View = 'overview'|'hierarchy'|'services'|'wallet'|'security';
 type ServiceTab = 'aeps'|'money-transfer'|'recharges'|'upcoming';
 
-@Component({ selector: 'app-dashboard', imports: [DatePipe, RouterLink], templateUrl: './dashboard.html', styleUrl: './dashboard.scss' })
+@Component({ selector: 'app-dashboard', imports: [CurrencyPipe, DatePipe, RouterLink, RouterLinkActive], templateUrl: './dashboard.html', styleUrl: './dashboard.scss' })
 export class Dashboard implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly api = inject(PortalApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly user = this.auth.user;
   readonly view = signal<View>('overview');
   readonly loading = signal(true);
   readonly error = signal('');
   readonly dashboard = signal<DashboardData|null>(null);
+  readonly walletBalance = signal<WalletBalance|null>(null);
+  readonly walletLoading = signal(false);
   readonly organizations = signal<OrganizationUnit[]>([]);
   readonly serviceDefinitions = signal<ServiceDefinition[]>([]);
   readonly effectiveServices = signal<EffectiveService[]>([]);
@@ -39,6 +43,13 @@ export class Dashboard implements OnInit {
   readonly visibleDashboardServices = computed(() => this.groupedDashboardServices()[this.activeServiceTab()]);
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe(params => {
+      const requested = params.get('view');
+      const allowed: View[] = ['overview', 'hierarchy', 'services', 'wallet', 'security'];
+      const nextView = allowed.includes(requested as View) ? requested as View : 'overview';
+      this.view.set(nextView);
+      if (nextView === 'wallet' && !this.walletBalance()) this.loadWalletBalance();
+    });
     forkJoin({ dashboard: this.api.dashboard(), organizations: this.api.organizationTree(), services: this.api.services() }).subscribe({
       next: ({ dashboard, organizations, services }) => {
         this.dashboard.set(dashboard); this.organizations.set(organizations); this.serviceDefinitions.set(services);
@@ -48,7 +59,17 @@ export class Dashboard implements OnInit {
       error: () => { this.error.set('The dashboard could not be loaded. Please try again.'); this.loading.set(false); },
     });
   }
-  selectView(view: View): void { this.view.set(view); }
+  selectView(view: View): void {
+    this.view.set(view);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { view }, queryParamsHandling: 'merge' });
+  }
+  loadWalletBalance(): void {
+    this.walletLoading.set(true); this.error.set('');
+    this.api.walletBalance().subscribe({
+      next: balance => { this.walletBalance.set(balance); this.walletLoading.set(false); },
+      error: () => { this.error.set('Wallet balances could not be loaded. Please try again.'); this.walletLoading.set(false); },
+    });
+  }
   selectServiceTab(tab: ServiceTab): void { this.activeServiceTab.set(tab); }
   selectOrganization(event: Event): void { const id = (event.target as HTMLSelectElement).value; this.selectedOrganizationId.set(id); this.loadPermissions(id); }
   changePermission(service: EffectiveService, effect: 'ALLOW'|'DENY'): void {

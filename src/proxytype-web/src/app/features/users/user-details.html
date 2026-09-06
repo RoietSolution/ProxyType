@@ -1,1 +1,67 @@
-<main class="users-page"><section class="panel">@if(user(); as item){<div class="head"><div><p class="eyebrow">User details</p><h1>{{item.displayName}}</h1><p>{{item.username}} · {{item.isActive ? 'Active' : 'Inactive'}}</p></div><button type="button" (click)="back()">Back to list</button></div><div class="detail-grid"><div><small>Email</small><strong>{{item.email}}</strong></div><div><small>Mobile</small><strong>{{item.mobile || 'Not provided'}}</strong></div><div><small>Roles</small><strong>{{item.roles.join(', ') || 'Unassigned'}}</strong></div><div><small>Legacy reference</small><strong>{{item.legacySystem ? item.legacySystem + ' / ' + item.legacyId : 'ProxyType user'}}</strong></div></div><h2>Organization assignments</h2><div class="assignments">@for(membership of item.memberships; track membership.organizationUnitId){<span>{{membership.code}} · {{membership.unitType}}</span>}@empty{<span>Not assigned — no operational access</span>}</div><h2>Reset password</h2><div class="reset"><input type="password" [formControl]="password" placeholder="New password (minimum 14 characters)"><button type="button" (click)="resetPassword()">Reset password</button></div>@if(message()){<div class="notice">{{message()}}</div>}@if(error()){<div class="error">{{error()}}</div>}}@else if(error()){<div class="error">{{error()}}</div>}@else{<p>Loading user details…</p>}</section></main>
+<main class="profile-page">
+  @if(details(); as item){
+    <section class="profile-shell">
+      <header class="profile-head">
+        <div class="identity"><span class="avatar">{{(profile().firstName || item.user.displayName).charAt(0)}}{{(profile().lastName || '').charAt(0)}}</span><div><p class="eyebrow">{{unitType()}} user profile</p><h1>{{fullName()}}</h1><p>{{item.organizationCode}} · {{item.organizationName}}</p></div></div>
+        <div class="head-actions"><span class="status" [class.inactive]="!item.user.isActive">{{item.user.isActive ? 'Active' : 'Inactive'}}</span><a class="primary-link" [routerLink]="['/users',item.user.userId,'edit']">Edit user</a><button class="secondary" type="button" (click)="back()">Back</button></div>
+      </header>
+
+      <div class="summary-grid">
+        <article><small>Contact</small><strong>{{item.user.mobile || 'Not provided'}}</strong><span>{{item.user.email}}</span></article>
+        <article><small>KYC completeness</small><strong [class.good]="kycReady()" [class.warn]="!kycReady()">{{kycReady() ? 'Ready for review' : 'Incomplete'}}</strong><span>{{completedKycChecks()}} of {{kycChecks().length}} checks complete</span></article>
+        <article><small>Documents</small><strong>{{documents().length + (item.hasAadhaarDocument ? 1 : 0)}}</strong><span>Files available</span></article>
+        <article><small>Services</small><strong>{{allowedServices()}} enabled</strong><span>{{restrictedServices()}} restricted</span></article>
+      </div>
+
+      <nav class="tabs" aria-label="User detail sections">
+        <button type="button" [class.active]="activeTab()==='overview'" (click)="selectTab('overview')">Overview</button><button type="button" [class.active]="activeTab()==='address'" (click)="selectTab('address')">Addresses</button><button type="button" [class.active]="activeTab()==='documents'" (click)="selectTab('documents')">Documents & KYC</button><button type="button" [class.active]="activeTab()==='services'" (click)="selectTab('services')">Services</button><button type="button" [class.active]="activeTab()==='security'" (click)="selectTab('security')">Account</button>
+      </nav>
+
+      @if(activeTab()==='overview'){
+        <section class="tab-panel"><div class="section-title"><div><p class="eyebrow">Profile</p><h2>Personal and business information</h2></div></div>
+          <dl class="info-grid">
+            <div><dt>Full name</dt><dd>{{fullName()}}</dd></div><div><dt>User code</dt><dd>{{item.organizationCode}}</dd></div><div><dt>Email</dt><dd>{{item.user.email}}</dd></div><div><dt>Mobile</dt><dd>{{item.user.mobile || 'Not provided'}}</dd></div>
+            <div><dt>Father's name</dt><dd>{{profile().fatherName || 'Not provided'}}</dd></div><div><dt>Mother's name</dt><dd>{{profile().motherName || 'Not provided'}}</dd></div><div><dt>Date of birth</dt><dd>{{profile().dateOfBirth || 'Not provided'}}</dd></div><div><dt>Gender</dt><dd>{{profile().gender || 'Not provided'}}</dd></div><div><dt>Marital status</dt><dd>{{profile().maritalStatus || 'Not provided'}}</dd></div>
+            <div><dt>Role</dt><dd>{{item.user.roles.join(', ') || 'Unassigned'}}</dd></div><div><dt>Company</dt><dd>{{profile().companyName || item.organizationName}}</dd></div><div><dt>Organization type</dt><dd>{{unitType()}}</dd></div><div><dt>Channel type</dt><dd>{{profile().channelType || 'Not provided'}}</dd></div><div><dt>Margin type</dt><dd>{{profile().marginType || 'Not provided'}}</dd></div>
+            @if(unitType()==='CSP'){<div><dt>SKU type</dt><dd>{{profile().skuType || 'Not provided'}}</dd></div><div><dt>SKU remarks</dt><dd>{{profile().skuRemarks || 'Not provided'}}</dd></div><div><dt>ASM name</dt><dd>{{profile().asmName || 'Not provided'}}</dd></div><div><dt>Coordinates</dt><dd>{{profile().latitude ?? '—'}}, {{profile().longitude ?? '—'}}</dd></div>}
+          </dl>
+        </section>
+      }
+
+      @if(activeTab()==='address'){
+        <section class="tab-panel address-grid">
+          <article><p class="eyebrow">Business</p><h2>Company address</h2><p>{{address([profile().companyAddress1,profile().companyAddress2,profile().companyAddress3])}}</p><dl><div><dt>City</dt><dd>{{profile().companyCity || 'Not provided'}}</dd></div><div><dt>District</dt><dd>{{profile().companyDistrict || 'Not provided'}}</dd></div><div><dt>State</dt><dd>{{profile().companyState || 'Not provided'}}</dd></div><div><dt>Region</dt><dd>{{profile().companyRegion || 'Not provided'}}</dd></div><div><dt>Pincode</dt><dd>{{profile().companyPincode || 'Not provided'}}</dd></div><div><dt>Phone</dt><dd>{{profile().companyPhone || 'Not provided'}}</dd></div></dl></article>
+          <article><p class="eyebrow">Residential</p><h2>Residential address</h2><p>{{address([profile().residentialAddress1,profile().residentialAddress2,profile().residentialAddress3])}}</p><dl><div><dt>City</dt><dd>{{profile().residentialCity || 'Not provided'}}</dd></div><div><dt>District</dt><dd>{{profile().residentialDistrict || 'Not provided'}}</dd></div><div><dt>State</dt><dd>{{profile().residentialState || 'Not provided'}}</dd></div><div><dt>Region</dt><dd>{{profile().residentialRegion || 'Not provided'}}</dd></div><div><dt>Pincode</dt><dd>{{profile().residentialPincode || 'Not provided'}}</dd></div><div><dt>Phone</dt><dd>{{profile().residentialPhone || 'Not provided'}}</dd></div></dl></article>
+        </section>
+      }
+
+      @if(activeTab()==='documents'){
+        <section class="tab-panel">
+          <div class="kyc-card" [class.complete]="kycReady()"><div><p class="eyebrow">KYC completeness</p><h2>{{kycReady() ? 'Ready for administrative review' : 'Information incomplete'}}</h2><p>{{kycRemarks()}}</p><small>This status measures document completeness and does not represent formal KYC verification.</small></div><span>{{completedKycChecks()}}/{{kycChecks().length}}</span></div>
+          <div class="kyc-grid">@for(check of kycChecks();track check.label){<div [class.done]="check.complete"><b>{{check.complete ? '✓' : '!'}}</b><span>{{check.label}}</span><small>{{check.complete ? 'Available' : 'Missing'}}</small></div>}</div>
+          <div class="sensitive-grid"><div><small>Aadhaar</small><strong>{{maskedAadhaar()}}</strong></div><div><small>PAN</small><strong>{{maskedPan()}}</strong></div><div><small>TIN</small><strong>{{profile().tinNumber || 'Not provided'}}</strong></div></div>
+          <div class="section-title document-heading"><div><p class="eyebrow">Files</p><h2>User documents</h2></div><a class="secondary-link" routerLink="/user-documents">Manage documents</a></div>
+          <div class="document-list">
+            @if(item.hasAadhaarDocument){<article><div class="file-icon">ID</div><div><strong>Aadhaar document</strong><span>{{item.aadhaarDocumentFileName || 'aadhaar-document'}}</span></div><button type="button" (click)="downloadAadhaar()">Download</button></article>}
+            @for(document of documents();track document.userDocumentId){<article><div class="file-icon">DOC</div><div><strong>{{documentTypeLabel(document.documentType)}}</strong><span>{{document.fileName}} · {{formatSize(document.fileSize)}} · {{formatDate(document.createdAtUtc)}}</span></div><button type="button" (click)="downloadDocument(document)">Download</button></article>}
+            @empty{ @if(!item.hasAadhaarDocument){<p class="empty">No documents have been uploaded for this user.</p>} }
+          </div>
+        </section>
+      }
+
+      @if(activeTab()==='services'){
+        <section class="tab-panel"><div class="section-title"><div><p class="eyebrow">Organization access</p><h2>{{unitType()}} services</h2><p>Effective permissions include decisions inherited from parent organizations.</p></div></div>
+          <div class="service-list">@for(service of services();track service.serviceId){<article><div><div><strong>{{service.name}}</strong><span>{{service.category}} · {{service.code}}</span></div><div class="service-flags">@if(requiresKyc(service.serviceId)){<span class="kyc-flag">KYC required</span>}<span [class.allowed]="service.isAllowed" [class.denied]="!service.isAllowed">{{service.isAllowed ? 'Enabled' : 'Restricted'}}</span></div></div><p>{{service.decisionReason}}</p></article>}@empty{<p class="empty">No service permissions are configured for this organization.</p>}</div>
+        </section>
+      }
+
+      @if(activeTab()==='security'){
+        <section class="tab-panel account-grid">
+          <article><p class="eyebrow">Access</p><h2>Account information</h2><dl><div><dt>Username</dt><dd>{{item.user.username}}</dd></div><div><dt>Status</dt><dd>{{item.user.isActive ? 'Active' : 'Inactive'}}</dd></div><div><dt>Password change</dt><dd>{{item.user.mustChangePassword ? 'Required at next login' : 'Not required'}}</dd></div><div><dt>Legacy reference</dt><dd>{{item.user.legacySystem ? item.user.legacySystem + ' / ' + item.user.legacyId : 'ProxyType user'}}</dd></div></dl></article>
+          <article><p class="eyebrow">Security action</p><h2>Reset password</h2><p>The new password must contain at least 14 characters.</p><div class="reset"><input type="password" [formControl]="password" placeholder="New password"><button type="button" (click)="resetPassword()">Reset password</button></div></article>
+        </section>
+      }
+      @if(message()){<div class="notice">{{message()}}</div>}@if(error()){<div class="error">{{error()}}</div>}
+    </section>
+  }@else if(error()){<section class="profile-shell"><div class="error">{{error()}}</div><button type="button" (click)="back()">Back to users</button></section>}@else{<section class="profile-shell loading">Loading user profile…</section>}
+</main>

@@ -1,0 +1,19 @@
+<main class="commission-page"><section class="commission-shell">
+  <header><div><p>Pricing administration</p><h1>Recharge Commission</h1><span>Configure group commissions or override them for an individual CSP user.</span></div><button class="close" type="button" (click)="close()">×</button></header>
+  @if(error()){<div class="error" role="alert">{{error()}}</div>}
+  @if(success()){<div class="success" role="status">{{success()}}</div>}
+  <section class="panel">
+    <div class="toolbar scope-toolbar">
+      <label>Configuration scope<select [(ngModel)]="scopeMode" (change)="changeScope()"><option value="ROLE">Role group</option><option value="USER">Specific CSP user</option></select></label>
+      @if(scopeMode === 'ROLE') {
+        <label>Role<select [(ngModel)]="roleId" (change)="load()">@for(role of roles();track role.roleId){<option [value]="role.roleId">{{role.name}}</option>}</select></label>
+      } @else {
+        <label class="user-search">Find CSP<input [(ngModel)]="userSearch" placeholder="Name, username, mobile or email" (keyup.enter)="searchUsers()"><button type="button" class="secondary" (click)="searchUsers()">Search</button></label>
+        <label>CSP user<select [(ngModel)]="userId" (change)="load()"><option value="">Select CSP user</option>@for(user of cspUsers();track user.userId){<option [value]="user.userId">{{user.displayName}} · {{user.username}} · {{user.memberships[0]?.code}}</option>}</select></label>
+      }
+      <button type="button" (click)="save()" [disabled]="saving() || loading() || !rows().length">{{saving()?'Saving…':scopeMode === 'USER'?'Save CSP overrides':'Save commissions'}}</button>
+    </div>
+    @if(scopeMode === 'USER' && userId){<p class="scope-note">Unchecked operators inherit the CSP User group commission. Enable an override only where this CSP needs a different rate.</p>}
+    <div class="table-wrap"><table><thead><tr><th>Operator</th><th>Recharge type</th>@if(scopeMode === 'USER'){<th>Override</th>}<th>Commission type</th><th>Rate</th></tr></thead><tbody>@for(row of rows();track row.operatorId;let i=$index){<tr><td><strong>{{row.operatorName}}</strong><small>{{row.operatorLabel}}</small></td><td>{{row.rechargeType}}</td>@if(scopeMode === 'USER'){<td><label class="override"><input type="checkbox" [ngModel]="row.isUserOverride" (ngModelChange)="setOverride(i,$event)"><span>{{row.isUserOverride ? 'Specific' : 'CSP group'}}</span></label></td>}<td><select [disabled]="scopeMode === 'USER' && !row.isUserOverride" [ngModel]="row.calculationType" (ngModelChange)="update(i,'calculationType',$event)"><option value="PERCENTAGE">Percentage</option><option value="FIXED">Fixed amount</option></select></td><td><div class="rate"><span>{{row.calculationType==='PERCENTAGE'?'%':'₹'}}</span><input type="number" min="0" step="0.01" [disabled]="scopeMode === 'USER' && !row.isUserOverride" [ngModel]="row.rate" (ngModelChange)="update(i,'rate',$event)"></div></td></tr>}@empty{<tr><td [attr.colspan]="scopeMode === 'USER' ? 5 : 4" class="empty">{{loading()?'Loading commissions…':scopeMode === 'USER'?'Search for and select a CSP user.':'No active recharge operators found.'}}</td></tr>}</tbody></table></div>
+  </section>
+</section></main>

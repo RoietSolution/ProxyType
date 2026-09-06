@@ -1,0 +1,38 @@
+.deposit-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  margin: 24px 0;
+  padding: 22px;
+  border: 1px solid #d7c9f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 32px #2b22570c;
+}
+
+.deposit-card > img {
+  width: 180px;
+  height: 180px;
+  border: 1px solid #e5e7ef;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.deposit-card h2 { font-size: 21px; }
+.deposit-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.deposit-card dt { color: #838a98; font-size: 12px; }
+.deposit-card dd { margin: 3px 0 0; font-weight: 800; word-break: break-word; }
+.deposit-card p:last-child { margin: 0; color: #697080; font-size: 13px; }
+.notice.warning { border-color: #efd8a4; background: #fffbef; }
+.notice.warning strong { color: #8a6200; }
+
+@media (max-width: 760px) {
+  .deposit-card { grid-template-columns: 1fr; }
+  .deposit-card > img { width: 150px; height: 150px; }
+  .deposit-card dl { grid-template-columns: 1fr; }
+}

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProxyType.Api.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6f8c4e57a33749adeb0cd2df4c69a632cf8e4cc9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+78c759ce29535be49cfd627841986d254092143d")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProxyType.Api.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProxyType.Api.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

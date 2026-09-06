@@ -14,7 +14,8 @@ public sealed class RechargeService(
     ProxyTypeDbContext dbContext,
     ICurrentScopeService scopeService,
     ServicePermissionService permissionService,
-    IRechargeProvider provider)
+    IRechargeProvider provider,
+    PricingService pricingService)
 {
     public async Task<RechargeResponse> RechargeAsync(
         RechargeRequest request,
@@ -55,6 +56,7 @@ public sealed class RechargeService(
         }
 
         var now = DateTime.UtcNow;
+        var commissionAmount = await pricingService.RechargeCommissionAsync(operatorItem.RechargeOperatorId, scopeService.UserId, request.Amount, cancellationToken);
         var reference = $"PTR{now:yyyyMMddHHmmssfff}{Random.Shared.Next(100, 999)}";
         var transaction = new ServiceTransaction
         {
@@ -70,7 +72,7 @@ public sealed class RechargeService(
             Status = "CREATED",
             Amount = request.Amount,
             ChargeAmount = 0,
-            CommissionAmount = Commission(operatorItem, request.Amount),
+            CommissionAmount = commissionAmount,
             RequestSummaryJson = JsonSerializer.Serialize(new
             {
                 Account = Mask(request.Account),
@@ -194,9 +196,6 @@ public sealed class RechargeService(
         provider.Mode.ToString().ToUpperInvariant(), transaction.ProviderReference, "MASKED",
         transaction.Amount, transaction.ChargeAmount, transaction.CommissionAmount, transaction.DebitAmount,
         transaction.FailureMessage, receiptNumber);
-
-    private static decimal Commission(RechargeOperator item, decimal amount) =>
-        item.CommissionType == "PERCENTAGE" ? Math.Round(amount * item.CommissionValue / 100m, 4) : item.CommissionValue;
 
     private static string Mask(string value) => value.Length <= 4 ? "****" : $"{new string('*', value.Length - 4)}{value[^4..]}";
 }

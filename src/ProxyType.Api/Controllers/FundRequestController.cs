@@ -8,6 +8,10 @@ namespace ProxyType.Api.Controllers;
 [ApiController, Authorize, Route("api/services/fund-request")]
 public sealed class FundRequestController(FundRequestService service) : ControllerBase
 {
+    [HttpGet("instructions")]
+    public async Task<ActionResult<FundRequestInstructionsResponse>> Instructions(CancellationToken ct) =>
+        await ExecuteAsync(() => service.InstructionsAsync(ct));
+
     [HttpGet("requests")]
     public async Task<ActionResult<IReadOnlyList<FundRequestResponse>>> List(CancellationToken ct) =>
         await ExecuteAsync(() => service.ListAsync(ct));

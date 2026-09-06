@@ -153,3 +153,4 @@ G:\ProxyType\tests\ProxyType.Api.Tests\obj\Release\net9.0\refint\ProxyType.Api.T
 G:\ProxyType\tests\ProxyType.Api.Tests\obj\Release\net9.0\ProxyType.Api.Tests.pdb
 G:\ProxyType\tests\ProxyType.Api.Tests\obj\Release\net9.0\ProxyType.Api.Tests.genruntimeconfig.cache
 G:\ProxyType\tests\ProxyType.Api.Tests\obj\Release\net9.0\ref\ProxyType.Api.Tests.dll
+G:\ProxyType\tests\ProxyType.Api.Tests\obj\Release\net9.0\ProxyType.Api.Tests.sourcelink.json

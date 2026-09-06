@@ -11,16 +11,37 @@ namespace ProxyType.Api.Finance;
 public sealed class FundRequestService(
     ProxyTypeDbContext db,
     ICurrentScopeService scope,
-    ServicePermissionService permissions)
+    ServicePermissionService permissions,
+    IConfiguration configuration)
 {
     private const decimal MaximumAmount = 1_000_000m;
     private const long MaximumProofBytes = 5_000_000;
     private static readonly string[] AllowedProofTypes = ["image/jpeg", "image/png", "image/gif"];
 
+    public async Task<FundRequestInstructionsResponse> InstructionsAsync(CancellationToken ct = default)
+    {
+        var membership = await PrimaryMembershipAsync(ct);
+        _ = await AuthorizedServiceAsync(membership.OrganizationUnitId, ct);
+
+        var section = configuration.GetSection("FundRequest:DepositAccount");
+        var bankName = Clean(section["BankName"]);
+        var accountHolderName = Clean(section["AccountHolderName"]);
+        var accountNumber = Clean(section["AccountNumber"]);
+        var ifscCode = Clean(section["IfscCode"])?.ToUpperInvariant();
+        var qrCodeUrl = Clean(section["QrCodeUrl"]);
+        var isConfigured = bankName is not null && accountHolderName is not null && accountNumber is not null && ifscCode is not null;
+
+        return new("NEFT", bankName, accountHolderName, accountNumber, ifscCode, qrCodeUrl, isConfigured);
+    }
+
     public async Task<FundRequestResponse> CreateAsync(FundRequestCreateRequest request, CancellationToken ct = default)
     {
         if (request.Amount < 1 || request.Amount > MaximumAmount)
             throw new InvalidOperationException("Fund Request amount must be between ₹1 and ₹1,000,000.");
+        if (request.TransactionDate is null)
+            throw new InvalidOperationException("Transaction date is required.");
+        if (request.TransactionDate > DateOnly.FromDateTime(DateTime.Today))
+            throw new InvalidOperationException("Transaction date cannot be in the future.");
 
         var membership = await PrimaryMembershipAsync(ct);
         var service = await AuthorizedServiceAsync(membership.OrganizationUnitId, ct);
@@ -55,6 +76,7 @@ public sealed class FundRequestService(
             RequestSummaryJson = JsonSerializer.Serialize(new
             {
                 PaymentMode = "NEFT",
+                TransactionDate = request.TransactionDate.Value,
                 ExternalReference = request.ExternalReference.Trim(),
                 ProofContentType = proof.ContentType,
                 ProofSize = proof.Content.Length
@@ -70,6 +92,7 @@ public sealed class FundRequestService(
             RequestedByUserId = scope.UserId,
             ServiceTransactionId = transaction.ServiceTransactionId,
             Amount = request.Amount,
+            TransactionDate = request.TransactionDate.Value,
             PaymentMode = "NEFT",
             ExternalReference = request.ExternalReference.Trim(),
             ProofContent = proof.Content,
@@ -94,6 +117,7 @@ public sealed class FundRequestService(
                 transaction.TransactionReference,
                 fundRequest.Status,
                 fundRequest.Amount,
+                fundRequest.TransactionDate,
                 fundRequest.PaymentMode,
                 fundRequest.ExternalReference
             })
@@ -106,7 +130,7 @@ public sealed class FundRequestService(
             EntityType = "FundRequest",
             EntityId = fundRequest.FundRequestId.ToString(),
             CorrelationId = Guid.NewGuid(),
-            DetailsJson = JsonSerializer.Serialize(new { fundRequest.Amount, fundRequest.PaymentMode, ProofType = proof.ContentType }),
+            DetailsJson = JsonSerializer.Serialize(new { fundRequest.Amount, fundRequest.TransactionDate, fundRequest.PaymentMode, ProofType = proof.ContentType }),
             OccurredAtUtc = now
         });
 
@@ -154,6 +178,7 @@ public sealed class FundRequestService(
                 RequesterName = item.user.DisplayName,
                 OrganizationCode = item.unit.Code,
                 item.request.Status,
+                item.request.TransactionDate,
                 item.request.CreatedAtUtc,
                 item.request.ReviewedAtUtc,
                 item.request.ReviewReason,
@@ -166,7 +191,7 @@ public sealed class FundRequestService(
         return rows.Select(item => new FundRequestResponse(
             item.FundRequestId, item.TransactionId, item.TransactionReference, item.Status, item.Amount,
             item.PaymentMode, item.ExternalReference, item.HasProof ? $"/api/services/fund-request/requests/{item.FundRequestId}/proof" : null,
-            item.RequestedByUserId, item.RequesterName, item.OrganizationCode, item.CreatedAtUtc, item.ReviewedAtUtc,
+            item.RequestedByUserId, item.RequesterName, item.OrganizationCode, item.TransactionDate, item.CreatedAtUtc, item.ReviewedAtUtc,
             item.ReviewReason, item.WalletCredited, item.ReceiptNumber, canReview && item.Status == "PENDING")).ToArray();
     }
 
@@ -177,9 +202,8 @@ public sealed class FundRequestService(
         var service = await AuthorizedServiceAsync(request.OrganizationUnitId, ct);
         var canReview = await CanReviewAsync(request.OrganizationUnitId, service.ServiceId, ct);
         var accessible = await scope.GetAccessibleOrganizationIdsAsync(ct);
-        if (request.RequestedByUserId != scope.UserId && !canReview && !accessible.Contains(request.OrganizationUnitId))
-            throw new UnauthorizedAccessException("FUND_REQUEST_OUT_OF_SCOPE");
-        if (!accessible.Contains(request.OrganizationUnitId))
+        var isOwner = request.RequestedByUserId == scope.UserId;
+        if (!accessible.Contains(request.OrganizationUnitId) || (!isOwner && !canReview))
             throw new UnauthorizedAccessException("FUND_REQUEST_OUT_OF_SCOPE");
         return await ToResponseAsync(request, ct, canReview);
     }
@@ -234,6 +258,7 @@ public sealed class FundRequestService(
             request.RequestedByUserId,
             user.DisplayName,
             unit.Code,
+            request.TransactionDate,
             request.CreatedAtUtc,
             request.ReviewedAtUtc,
             request.ReviewReason,
@@ -300,7 +325,25 @@ public sealed class FundRequestService(
             throw new InvalidOperationException("Proof must be a JPG, PNG, or GIF image up to 5 MB.");
         await using var stream = new MemoryStream();
         await proof.CopyToAsync(stream, ct);
-        return (stream.ToArray(), proof.ContentType.ToLowerInvariant(), Path.GetFileName(proof.FileName)[..Math.Min(Path.GetFileName(proof.FileName).Length, 255)]);
+        var content = stream.ToArray();
+        var contentType = proof.ContentType.ToLowerInvariant();
+        if (!HasValidImageSignature(content, contentType))
+            throw new InvalidOperationException("The uploaded proof does not contain a valid JPG, PNG, or GIF image.");
+
+        var fileName = Path.GetFileName(proof.FileName);
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = "fund-request-proof";
+        return (content, contentType, fileName[..Math.Min(fileName.Length, 255)]);
     }
+
+    private static bool HasValidImageSignature(byte[] content, string contentType) => contentType switch
+    {
+        "image/jpeg" => content.Length >= 3 && content[0] == 0xFF && content[1] == 0xD8 && content[2] == 0xFF,
+        "image/png" => content.Length >= 8 && content.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
+        "image/gif" => content.Length >= 6 &&
+            (content.AsSpan(0, 6).SequenceEqual("GIF87a"u8) || content.AsSpan(0, 6).SequenceEqual("GIF89a"u8)),
+        _ => false
+    };
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
 }

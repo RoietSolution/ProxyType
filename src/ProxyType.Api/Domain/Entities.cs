@@ -23,6 +23,33 @@ public sealed class AppUser
     public byte[] RowVersion { get; set; } = [];
     public ICollection<UserRole> UserRoles { get; set; } = [];
     public ICollection<OrganizationMembership> Memberships { get; set; } = [];
+    public UserProfile? Profile { get; set; }
+}
+
+public sealed class UserProfile
+{
+    public Guid UserId { get; set; }
+    public string ProfileJson { get; set; } = "{}";
+    public byte[]? AadhaarDocumentContent { get; set; }
+    public string? AadhaarDocumentContentType { get; set; }
+    public string? AadhaarDocumentFileName { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+    public AppUser User { get; set; } = null!;
+}
+
+public sealed class UserDocument
+{
+    public Guid UserDocumentId { get; set; }
+    public Guid UserId { get; set; }
+    public string DocumentType { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public byte[] Content { get; set; } = [];
+    public Guid UploadedByUserId { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public AppUser User { get; set; } = null!;
 }
 
 public sealed class AppRole
@@ -144,6 +171,25 @@ public sealed class OrganizationServicePermission
     public FinancialService Service { get; set; } = null!;
 }
 
+public sealed class PricingRule
+{
+    public Guid PricingRuleId { get; set; }
+    public Guid ServiceId { get; set; }
+    public Guid? RoleId { get; set; }
+    public string RuleKind { get; set; } = string.Empty;
+    public string CalculationType { get; set; } = string.Empty;
+    public decimal AmountFrom { get; set; }
+    public decimal AmountTo { get; set; }
+    public decimal Rate { get; set; }
+    public decimal TdsRate { get; set; }
+    public decimal GstRate { get; set; }
+    public DateTime EffectiveFromUtc { get; set; }
+    public DateTime? EffectiveToUtc { get; set; }
+    public bool IsActive { get; set; }
+    public FinancialService Service { get; set; } = null!;
+    public AppRole? Role { get; set; }
+}
+
 public sealed class AuditLog
 {
     public long AuditLogId { get; set; }
@@ -222,6 +268,7 @@ public sealed class FundRequest
     public Guid RequestedByUserId { get; set; }
     public Guid? ServiceTransactionId { get; set; }
     public decimal Amount { get; set; }
+    public DateOnly TransactionDate { get; set; }
     public string PaymentMode { get; set; } = "NEFT";
     public string? ExternalReference { get; set; }
     public byte[]? ProofContent { get; set; }
@@ -296,6 +343,22 @@ public sealed class RechargeOperator
     public string CommissionType { get; set; } = "FIXED";
     public decimal CommissionValue { get; set; }
     public bool IsActive { get; set; }
+}
+
+public sealed class RechargeCommissionRule
+{
+    public Guid RechargeCommissionRuleId { get; set; }
+    public Guid RechargeOperatorId { get; set; }
+    public Guid? RoleId { get; set; }
+    public Guid? UserId { get; set; }
+    public string CalculationType { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public DateTime EffectiveFromUtc { get; set; }
+    public DateTime? EffectiveToUtc { get; set; }
+    public bool IsActive { get; set; }
+    public RechargeOperator Operator { get; set; } = null!;
+    public AppRole? Role { get; set; }
+    public AppUser? User { get; set; }
 }
 
 public sealed class AepsBank

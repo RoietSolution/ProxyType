@@ -49,3 +49,4 @@ G:\ProxyType\tools\DbProbe\obj\Debug\net9.0\refint\DbProbe.dll
 G:\ProxyType\tools\DbProbe\obj\Debug\net9.0\DbProbe.pdb
 G:\ProxyType\tools\DbProbe\obj\Debug\net9.0\DbProbe.genruntimeconfig.cache
 G:\ProxyType\tools\DbProbe\obj\Debug\net9.0\ref\DbProbe.dll
+G:\ProxyType\tools\DbProbe\obj\Debug\net9.0\DbProbe.sourcelink.json
